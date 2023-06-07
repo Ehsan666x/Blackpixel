@@ -1,15 +1,27 @@
 
 #include <iostream>
 #include "../include/game.h"
-#include "../include/structs.h"
+#include "../include/prints.h"
+#include "../include/globals.h"
 
 
-Out inout(std::string& input, int depth){
 
+Out inout(std::string& input, int& depth){
+    if(!depth){depth=1;}
     Game game(input,depth);
+
+    game_data gd=game.get_gd();
+    // for(int i=0; i<12; i++){
+    //    std::cout << gd.bitboards[i] << std::endl;
+    //    print_bitboard(gd.bitboards[i]);
+    // }
+    print_chessboard(gd);
+    //std::cout << gd.en_passant << gd.castles << gd.fullmove << gd.halfmove << std::endl;
+
     Out out;
     out.e=game.eval();
     out.bm=game.best_move();
+
     return out;
 }
 
