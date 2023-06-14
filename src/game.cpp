@@ -1,8 +1,9 @@
 #include <string>
 #include <iostream>
-#include "../include/game.h"
-#include "../include/bitboards.h"
 #include "../include/globals.h"
+#include "../include/bitboards.h"
+#include "../include/moves.h"
+#include "../include/game.h"
 //#include "new_fen.cpp"
 
 //std::string calculate_new_fen(std::string& fen, const std::string& move);
@@ -25,6 +26,12 @@ void Game::move(const std::string& move){
     // /std::string new_fen = calculate_new_fen(_fen,move);
     //_fen=new_fen;
 }
+MoveList Game::possible_moves(){
+    MoveList ml;
+    ml.generate(_gd);
+    return ml;
+};
+
 std::string Game::get_fen(){
     return _fen;
 }

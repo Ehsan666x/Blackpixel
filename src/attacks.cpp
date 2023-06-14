@@ -1,7 +1,10 @@
-#include "../include/attacks.h"
 #include "../include/globals.h"
 #include "../include/bitboards.h"
 #include "../include/magics.h"
+#include "../include/attacks.h"
+#include "../include/prints.h"
+
+
 
 
 void init_raw_attacks(){
@@ -26,7 +29,7 @@ void init_raw_attacks(){
             if(file!=7){
                 PUT_BIT(empty_a,sqr);
             }
-             if(file!=7 && file!=6){
+            if(file!=7 && file!=6){
                 PUT_BIT(empty_ab,sqr);
             }
         }
@@ -61,6 +64,8 @@ void init_raw_attacks(){
                 for (int r = rank + 1, f = file - 1; r < 7 && f > 0; r++, f--){ PUT_BIT(attackbits,(r*8+f));}
                 for (int r = rank - 1, f = file - 1; r > 0 && f > 0; r--, f--){ PUT_BIT(attackbits,(r*8+f));}
 
+                //print_bitboard(attackbits);
+
             }else if(i==2){ // rook
                 int rank = sqr / 8;
                 int file = sqr % 8;
@@ -70,7 +75,7 @@ void init_raw_attacks(){
                 for (int f = file + 1; f < 7; f++){ PUT_BIT(attackbits,(rank*8 + f));}
                 for (int r = rank - 1; r > 0; r--){ PUT_BIT(attackbits,(r*8 + file));}
                 for (int f = file - 1; f > 0; f--){ PUT_BIT(attackbits,(rank*8 + f));}
-                
+                //print_bitboard(attackbits);
 
             }else if(i==3){ // bishop
                 int rank = sqr / 8;
@@ -80,6 +85,7 @@ void init_raw_attacks(){
                 for (int r = rank - 1, f = file + 1; r > 0 && f < 7; r--, f++){ PUT_BIT(attackbits,(r*8+f));}
                 for (int r = rank + 1, f = file - 1; r < 7 && f > 0; r++, f--){ PUT_BIT(attackbits,(r*8+f));}
                 for (int r = rank - 1, f = file - 1; r > 0 && f > 0; r--, f--){ PUT_BIT(attackbits,(r*8+f));}
+                //print_bitboard(attackbits);
                 
             }else if(i==4){ // knight
 
@@ -101,13 +107,14 @@ void init_raw_attacks(){
                 if ((piecebit >> 7) & empty_h){ attackbits |= (piecebit >> 7);}
                 if ((piecebit >> 9) & empty_a){ attackbits |= (piecebit >> 9);}
             }
+
             raw_attacks[i][sqr] = attackbits;
         }
     }
 }
 
 
-inline uint64_t sliding_attacks_manually(int p,int sqr, uint64_t& block_mask){
+uint64_t sliding_attacks_manually(int p,int sqr, uint64_t& block_mask){
     uint64_t attackbits = 0ULL;
     int rank = sqr / 8;
     int file = sqr % 8;
@@ -117,7 +124,7 @@ inline uint64_t sliding_attacks_manually(int p,int sqr, uint64_t& block_mask){
         for (int r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--){ PUT_BIT(attackbits,(r*8+f));if ((1ULL << (r * 8 + f)) & block_mask) break;}
         for (int r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--){ PUT_BIT(attackbits,(r*8+f));if ((1ULL << (r * 8 + f)) & block_mask) break;}
     }else if(p==1){ // rook
-         
+        
         for (int r = rank + 1; r < 8; r++){ PUT_BIT(attackbits,(r*8 + file));if ((1ULL << (r*8 + file)) & block_mask) break;}
         for (int f = file + 1; f < 8; f++){ PUT_BIT(attackbits,(rank*8 + f));if ((1ULL << (rank*8 + f)) & block_mask) break;}
         for (int r = rank - 1; r >= 0; r--){ PUT_BIT(attackbits,(r*8 + file));if ((1ULL << (r*8 + file)) & block_mask) break;}
@@ -129,30 +136,61 @@ inline uint64_t sliding_attacks_manually(int p,int sqr, uint64_t& block_mask){
 void init_sliding_attacks_tables(){
     for(int sqr=0;sqr<64;sqr++){
         for(int p=0;p<2;p++){
-            int attack_mask = raw_attacks[!p? 3 : 2][sqr];
+            uint64_t attack_mask = raw_attacks[!p? 3 : 2][sqr];
             int attack_bits_number = count_bits(attack_mask);
-            int occupancy_indicies = (1 << attack_bits_number);
-            for (int index = 0; index < occupancy_indicies; index++){
+            uint64_t possible_patterns = (1 << attack_bits_number); // 2 ^attack_bits_number   number of possible patterns 
+            for (uint64_t index = 0; index < possible_patterns; index++){
 
                 uint64_t occupancy = generate_occupancy(index, attack_bits_number, attack_mask);
                 
                 // init magic index
-                int magic_index = (occupancy * magic_tables[p][sqr]) >> (64 - relevant_array[p][sqr]);
+                //uint64_t magic_index = (occupancy * magic_tables[p][sqr]) >> (64 - relevant_array[p][sqr]);
                 
-                // init bishop attacks
-                sliding_attack_tables[p][sqr][magic_index] = sliding_attacks_manually(p,sqr, occupancy);
+                //sliding_attack_tables[p][sqr][magic_index] = sliding_attacks_manually(p,sqr, occupancy);
+                //
                 //int sa = sliding_attacks_manually(p,sqr, occupancy);
+                // if(occupancy == 577023702256844800ULL){
+                //     print_bitboard(occupancy);
+                //     uint64_t sl = sliding_attack_tables[1][57][magic_index];
+                //     print_bitboard(sl);
+                // }
+                //test
+                sliding_attack_tables[p][sqr][occupancy] = sliding_attacks_manually(p,sqr, occupancy);
             }
-
         }
     }
-}
+            //uint64_t sa = sliding_attack_tables[1][57][577023702256844800UL];
+            //print_bitboard(sa);
+};
 
 uint64_t get_sliding_attacks(int p,int sqr, uint64_t occupancy){
+    // int piece = (p==3 || p==0) ? 3: 2;
+    // uint64_t attack_mask = raw_attacks[piece][sqr];
+    // //print_bitboard(attack_mask);
+    occupancy &= raw_attacks[(p==3 || p==0) ? 3: 2][sqr];
+    // print_bitboard(occupancy);
+    // uint64_t magic_index = (occupancy * magic_tables[(p==3 || p==0) ? 0: 1][sqr]) >> (64 - relevant_array[(p==3 || p==0) ? 0: 1][sqr]);
+    // return sliding_attack_tables[(p==3 || p==0) ? 0: 1][sqr][magic_index];
+
+    //return sliding_attack_tables[(p==3 || p==0) ? 0: 1][sqr][magic_index];
+    //test
+    return sliding_attack_tables[(p==3 || p==0) ? 0: 1][sqr][occupancy];
+
+    // occupancy &= raw_attacks[(p==3 || p==0) ? 3: 2][sqr];
+    // occupancy *=  magic_tables[(p==3 || p==0) ? 0: 1][sqr];
+    // occupancy >>= 64 - relevant_array[(p==3 || p==0) ? 0: 1][sqr];
+    // return sliding_attack_tables[(p==3 || p==0) ? 0: 1][sqr][occupancy];
+};
+uint64_t get_queen_attacks(int sqr, uint64_t occupancy){
+    uint64_t queen_attacks = 0ULL;
+    uint64_t queen_occupancy = occupancy;
     
-    int attack_mask = raw_attacks[p==3 || p==0 ? 3: 2][sqr];
-    occupancy &= attack_mask;
-    int magic_index = (occupancy * magic_tables[p==3 || p==0 ? 0: 1][sqr]) >> (64 - relevant_array[p==3 || p==0 ? 0: 1][sqr]);
-    
-    return sliding_attack_tables[p==3 || p==0 ? 0: 1][sqr][magic_index];
-}
+    occupancy &= raw_attacks[3][sqr]; //bishop
+    queen_attacks |= sliding_attack_tables[0][sqr][occupancy]; // bishop table
+
+    queen_occupancy &= raw_attacks[2][sqr]; //rook
+    queen_attacks |= sliding_attack_tables[1][sqr][queen_occupancy]; // rook table
+
+    return queen_attacks;
+};
+

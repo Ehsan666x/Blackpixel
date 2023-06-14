@@ -40,22 +40,36 @@ int count_bits(uint64_t bitboard){
     return count;
 }
 
-uint64_t generate_occupancy(int index, int relevant_bits, uint64_t attack_mask){
-    // occupancy map
+uint64_t generate_occupancy(int decimal_pattern, int attack_bits_number, uint64_t attack_mask){
+    // occupancy map - discovering the occupany pattern in binary
+    /*
+    ex:
+    Pattern 0: 00000000000000000
+    Pattern 1: 00000000000000001
+    Pattern 2: 00000000000000010
+    ...
+    Pattern 131,071: 11111111111111110
+    Pattern 131,072: 11111111111111111
+    
+    index = pattern which corresponds to a decimal number
+    */
+
     uint64_t occupancy = 0ULL;
     
     // loop over the range of bits within attack mask
-    for (int count = 0; count < relevant_bits; count++){
+    for (int count = 0; count < attack_bits_number; count++){
         // get LS1B index of attacks mask
         int square = get_first_square(attack_mask);
         
+        // the bit in the pattern is either 0 or 1
+        // make sure the bit aligns with the pattern to create the pattern (aka index or decimal_pattern)
+        if (decimal_pattern & (1 << count)){
+            PUT_BIT(occupancy , square);
+        }
+
         // pop least first bit in attack map
         DEL_BIT(attack_mask, square);
         
-        // make sure occupancy is on board
-        if (index & (1 << count)){
-            PUT_BIT(occupancy , square);
-        }
     }
     
     // return occupancy map
@@ -63,8 +77,18 @@ uint64_t generate_occupancy(int index, int relevant_bits, uint64_t attack_mask){
 }
 
 
+inline void innerfen(uint64_t rookbitboard,uint64_t kingbitboard, game_data& gd){
+    int r1 = get_first_square(rookbitboard);
+    DEL_BIT(rookbitboard,r1);
+    int r2 = get_first_square(rookbitboard); // cant be more than two rooks and 1 king for each sides in initial position
+    int k = get_first_square(kingbitboard);
+    gd.r1 = r1;
+    gd.r2 = r2;
+    gd.k = k;
+};
+
 game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 /  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1  0=halfmvoe
-    
+                                      // 6kr/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1
     game_data gd;
     int sq=0;
     int file=0;
@@ -75,7 +99,9 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
         {"Q", 2},
         {"KQ", 3},
         {"k", 4},
+        {"Kk",5},
         {"q", 8},
+        {"Qq",10},
         {"kq", 12},
         {"KQkq", 15}
     };
@@ -119,12 +145,13 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
                 gd.halfmove = std::stoi(halfmove);
                 gd.fullmove = std::stoi(fullmove);
 
+                
             } else {
                 // Handle the case where the FEN string is not in the expected format
                 // ...
             }
-
-        
+            innerfen(gd.bitboards[2],gd.bitboards[0], gd);
+            return gd;
             
         }else if(*fen=='/'){
             rank--;
@@ -152,6 +179,7 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
         file++;
         fen++;
     }
-
+    innerfen(gd.bitboards[2],gd.bitboards[0], gd);
+    
     return gd;
 }

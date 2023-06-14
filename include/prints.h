@@ -10,7 +10,21 @@
 
 //r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 
+inline std::string notations[64] = { // global extern
+    "h1", "g1", "f1", "e1", "d1", "c1", "b1", "a1", 
+    "h2", "g2", "f2", "e2", "d2", "c2", "b2", "a2", 
+    "h3", "g3", "f3", "e3", "d3", "c3", "b3", "a3", 
+    "h4", "g4", "f4", "e4", "d4", "c4", "b4", "a4", 
+    "h5", "g5", "f5", "e5", "d5", "c5", "b5", "a5", 
+    "h6", "g6", "f6", "e6", "d6", "c6", "b6", "a6", 
+    "h7", "g7", "f7", "e7", "d7", "c7", "b7", "a7", 
+    "h8", "g8", "f8", "e8", "d8", "c8", "b8", "a8",
+};
 
+inline std::string piece_names[12] = {
+    "white King","white Queen","white Rook","white Bishop","white Knight","white Pawn",
+    "black king","black queen","black rook","black bishop","black knight","black pawn"
+};
 
 Out inout(std::string& input, int& depth); // this function is declared in Entry.cpp
 std::string calculate_new_fen(std::string& fen, const std::string& move);
@@ -22,9 +36,9 @@ void log(const T& message) {
 
 
 
-void print_bitboard(uint64_t& bitboard);
+void print_bitboard(uint64_t bitboard);
 
-void print_chessboard(game_data& gd);
+void print_chessboard(game_data gd);
 
 
 

@@ -1,9 +1,9 @@
 #include <iostream>
-#include "../include/magics.h"
-#include "../include/prints.h"
+#include <cstring>
 #include "../include/bitboards.h"
 #include "../include/attacks.h"
-#include <cstring>
+#include "../include/magics.h"
+#include "../include/prints.h"
 
 
 
@@ -72,10 +72,10 @@ void init_magic_tables(){
                 //uint64_t rook_raw_attack = raw_attacks[p+2][sqr];
 
                 // init occupancy indicies
-                int occupancy_indicies = 1 << relevant_bits;
+                uint64_t occupancy_indicies = 1 << relevant_bits;
 
                 // loop over occupancy indicies
-                for (int index = 0; index < occupancy_indicies; index++){
+                for (uint64_t index = 0; index < occupancy_indicies; index++){
 
                     // init occupancies
                     occupancies[index] = generate_occupancy(index, relevant_bits, attack_mask);
@@ -84,7 +84,7 @@ void init_magic_tables(){
                 }
 
                 // test magic numbers loop
-                for (int random_count = 0; random_count < 100000000; random_count++){
+                for (uint64_t random_count = 0; random_count < 100000000; random_count++){
 
                     // generate magic number candidate
                     uint64_t magic_number = Magicnumber::generate();
@@ -96,13 +96,13 @@ void init_magic_tables(){
                     memset(used_attacks, 0ULL, sizeof(used_attacks));
                     
                     // init index & fail flag
-                    int index, fail;
+                    uint64_t index, fail;
                     
                     // test magic index loop
                     for (index = 0, fail = 0; !fail && index < occupancy_indicies; index++){
                     
                         // init magic index
-                        int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+                        uint64_t magic_index = ((occupancies[index] * magic_number) >> (64 - relevant_bits));
                         
                         // if magic index works
                         if (used_attacks[magic_index] == 0ULL)
@@ -121,8 +121,9 @@ void init_magic_tables(){
                         //return magic_number;
                             // loop over 64 board squares
                         
-                            magic_numbers[p][sqr] = magic_number;
-                            log(magic_number);
+                            //magic_tables[p][sqr] = magic_number;
+                            std::cout << magic_number << "ULL,"<< std::endl;
+                            //log(magic_number);
                             break;
                             //rook_magic_numbers[sqr] = find_magic_number(sqr, rook_relevant_bits[sqr], rook);
 

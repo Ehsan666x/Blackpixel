@@ -1,9 +1,9 @@
 #include <iostream>
-#include "../include/prints.h"
-#include "../include/magics.h"
-#include "../include/attacks.h"
 #include "../include/globals.h"
-
+#include "../include/bitboards.h"
+#include "../include/attacks.h"
+#include "../include/magics.h"
+#include "../include/prints.h"
 
 uint64_t standard_bits[12]={
     8ULL,
@@ -21,14 +21,28 @@ uint64_t standard_bits[12]={
 };
 
 int main(){
+
     init_raw_attacks();
     init_magic_tables();
     init_sliding_attacks_tables();
+    
+    game_data gd;
+    // uint64_t attack_mask = raw_attacks[2][7];
+    // print_bitboard(attack_mask);
+    // for (int index = 0; index < 100; index++){
+    //     // init occupancy
+    //     uint64_t bb= generate_occupancy(index, count_bits(attack_mask), attack_mask);
+    //     print_bitboard(bb);
+    //     getchar();
+    // }
+
+ 
+
     int depth;
     std::string input;
-    for(int i=0;i<12;i++){
-        print_bitboard(standard_bits[i]);
-    }
+    // for(int i=0;i<12;i++){
+    //     print_bitboard(standard_bits[i]);
+    // }
     log("Enter your fen");
     //std::cin >> input;
     std::getline(std::cin, input);

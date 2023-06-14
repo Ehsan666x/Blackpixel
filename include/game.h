@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "globals.h"
+#include "moves.h"
 
 class Game {
 public:
@@ -10,6 +11,7 @@ public:
     void move(const std::string& move);
     std::string get_fen();
     game_data get_gd();
+    MoveList possible_moves();
 
 private:
    int _depth;
