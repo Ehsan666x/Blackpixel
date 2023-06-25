@@ -4,9 +4,7 @@
 
 
 
-std::string str_pieces ="KQRBNPkqrbnp";
-std::string str_white ="KQRBNP";
-std::string str_black ="kqrbnp";
+
 
 
 inline int get_first_square(uint64_t bitboard) {
@@ -77,14 +75,62 @@ uint64_t generate_occupancy(int decimal_pattern, int attack_bits_number, uint64_
 }
 
 
-inline void innerfen(uint64_t rookbitboard,uint64_t kingbitboard, game_data& gd){
-    int r1 = get_first_square(rookbitboard);
-    DEL_BIT(rookbitboard,r1);
-    int r2 = get_first_square(rookbitboard); // cant be more than two rooks and 1 king for each sides in initial position
-    int k = get_first_square(kingbitboard);
-    gd.r1 = r1;
-    gd.r2 = r2;
-    gd.k = k;
+inline void innerfen(game_data& gd){
+    // uint64_t rookbitboard = gd.bitboards[2];
+    // uint64_t kingbitboard = gd.bitboards[0];
+    // int r1 = get_first_square(rookbitboard);
+    // DEL_BIT(rookbitboard,r1);
+    // int r2 = get_first_square(rookbitboard); // cant be more than two rooks and 1 king for each sides in initial position
+    // int k = get_first_square(kingbitboard);
+    // gd.r1 = r1;
+    // gd.r2 = r2;
+    // gd.k = k;
+    gd.wk = get_first_square(gd.bitboards[0]);
+
+    if( 1 & gd.bitboards[2]){
+        gd.wr1 = 0;
+    }else{
+        for( int r=0; r<gd.wk; r++){
+            if((1ULL << r) & gd.bitboards[2]){
+                gd.wr1 = r;
+                break;
+            }
+        }
+    }
+
+    if((1ULL << 7) & gd.bitboards[2]){
+        gd.wr2 = 7;
+    }else{
+        for(int r=gd.wk+1; r<8; r++){
+            if((1ULL << r) & gd.bitboards[2]){
+                gd.wr2 = r;
+            }
+        }
+    }
+
+
+    gd.bk = get_first_square(gd.bitboards[6]);
+
+    if( (1ULL << 56) & gd.bitboards[8]){
+        gd.br1 = 56;
+    }else{
+        for( int r=56; r<gd.bk; r++){
+            if((1ULL << r) & gd.bitboards[8]){
+                gd.br1 = r;
+                break;
+            }
+        }
+    }
+
+    if((1ULL << 63) & gd.bitboards[8]){
+        gd.br2 = 63;
+    }else{
+        for(int r=gd.bk+1; r<64; r++){
+            if((1ULL << r) & gd.bitboards[8]){
+                gd.br2 = r;
+            }
+        }
+    }
 };
 
 game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 /  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1  0=halfmvoe
@@ -94,16 +140,22 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
     int file=0;
     int rank=8;
     std::unordered_map<std::string, int> castlingValues = {
-        {"-", 0},
-        {"K", 1},
-        {"Q", 2},
-        {"KQ", 3},
-        {"k", 4},
-        {"Kk",5},
-        {"q", 8},
-        {"Qq",10},
-        {"kq", 12},
-        {"KQkq", 15}
+        {"-", 0},       // 0000
+        {"K", 1},       // 0001
+        {"Q", 2},       // 0010
+        {"KQ", 3},      // 0011
+        {"k", 4},       // 0100
+        {"Kk",5},       // 0101
+        {"kQ", 6},      // 0110
+        {"KQk",7},      // 0111
+        {"q", 8},       // 1000
+        {"Kq",9},       // 1001
+        {"Qq",10},      // 1010
+        {"KQq",11},     // 1011
+        {"kq", 12},     // 1100
+        {"Kkq", 13},    // 1101
+        {"Qkq", 14},    // 1110
+        {"KQkq", 15},   // 1111
     };
     //char char_pieces[12] ={'K','Q','R','B','N','P','k','q','r','b','n','p'};
  
@@ -135,8 +187,8 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
 
                 
                 if (en_passant.size() == 2) {
-                    int file = en_passant[0] - 'a';
-                    int rank = en_passant[1] - '1';
+                    int file = 7  - (en_passant[0] - 'a');
+                    int rank = (en_passant[1] - '0') - 1;
                     if (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
                         gd.en_passant = rank * 8 + file;
                     }
@@ -144,13 +196,13 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
                     
                 gd.halfmove = std::stoi(halfmove);
                 gd.fullmove = std::stoi(fullmove);
-
+                gd.side_to_move = right_move == "w" ? 0 : 1;
                 
             } else {
                 // Handle the case where the FEN string is not in the expected format
                 // ...
             }
-            innerfen(gd.bitboards[2],gd.bitboards[0], gd);
+            innerfen(gd);
             return gd;
             
         }else if(*fen=='/'){
@@ -179,7 +231,7 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
         file++;
         fen++;
     }
-    innerfen(gd.bitboards[2],gd.bitboards[0], gd);
+    innerfen(gd);
     
     return gd;
 }

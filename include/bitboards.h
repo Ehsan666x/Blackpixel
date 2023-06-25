@@ -2,7 +2,11 @@
 
 #include <string>
 #include <iostream>
-#include "globals.h"
+#include "game.h"
+
+inline std::string str_pieces ="KQRBNPkqrbnp";
+inline std::string str_white ="KQRBNP";
+inline std::string str_black ="kqrbnp";
 
 constexpr inline int relevant_array[2][64] = {
     // bishop
@@ -32,6 +36,7 @@ constexpr inline int relevant_array[2][64] = {
 #define PUT_BIT(bitboard, square) ((bitboard) |= (1ULL << (square)))
 #define IS_BIT(bitboard, square) ((bitboard) & (1ULL << (square)))
 #define DEL_BIT(bitboard, square) ((bitboard) &= ~(1ULL << (square)))
+#define DEL_PAT(bitboard, pattern) ((bitboard) &= ~(pattern))
 
 game_data parse_fen(const char *fen);
 int get_first_square(uint64_t bitboard);

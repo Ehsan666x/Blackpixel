@@ -1,4 +1,7 @@
 
+#pragma once
+#include <iostream>
+#include <unordered_map>
 
 inline std::unordered_map<int, std::unordered_map <int, std::unordered_map<uint64_t, uint64_t> > > direction_attack_tables; // [direction][sqr][occupancy]=mask
 
@@ -17,3 +20,6 @@ enum directions {
 };
 
 uint64_t pin_mask(game_data& gd);
+void init_direction_attacks_tables();
+uint64_t raw_sliding_pins(int direction,int sqr);
+uint64_t sliding_pins_manually(int direction,int sqr, uint64_t& block_mask);

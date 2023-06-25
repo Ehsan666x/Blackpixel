@@ -1,6 +1,8 @@
 #pragma once
-#include <cstring>
-#include <unordered_map>
+#include <string>
+//#include <cstring>
+//#include <unordered_map>
+//#include "moves.h"
 
 
 extern std::string notations[64];
@@ -27,41 +29,6 @@ struct Out{ //
     std::string bm; //best move
 };
 
-struct game_data{
-    char* fen;
-    uint64_t bitboards[12]={
-        0ULL,0ULL,0ULL,
-        0ULL,0ULL,0ULL,
-        0ULL,0ULL,0ULL,
-        0ULL,0ULL,0ULL
-    };
-    uint64_t occupancy[3]={0ULL,0ULL,0ULL}; // white,black,both
-    int castles=0;
-    int side_to_move =0;
-    int en_passant =0;
-    int halfmove =0;
-    int fullmove =0;
-    int r1;
-    int r2;
-    int k;
-    MoveList piece_moves;
-
-        // Copy constructor
-    game_data(const game_data& other) {
-        fen = other.fen;
-        memcpy(bitboards, other.bitboards, sizeof(bitboards));
-        memcpy(occupancy, other.occupancy, sizeof(occupancy));
-        castles = other.castles;
-        side_to_move = other.side_to_move;
-        en_passant = other.en_passant;
-        halfmove = other.halfmove;
-        fullmove = other.fullmove;
-        r1 = other.r1;
-        r2 = other.r2;
-        k = other.k;
-        piece_moves = other.piece_moves;
-    }
-};
 
 enum {
     h1, g1, f1, e1, d1, c1, b1, a1, 

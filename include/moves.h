@@ -1,12 +1,13 @@
 
 #pragma once
 
-#include <string>
-#include <iostream>
-#include <unordered_map>
-#include "globals.h"
+//#include <string>
+//#include <iostream>
+// /#include <unordered_map>
+//#include "game.h"
+#include "attacks.h"
 // #include "prints.h"
-
+struct game_data;
 
 
 // /*
@@ -24,6 +25,27 @@
 // */
 
 // // encode move
+#define INVALID (65)
+
+// may use macros im not sure about using it with webassembly
+
+#define IS_SQUARE_ATTACKED(gd, sqr, attacker_side) \
+    (!attacker_side ? \
+        (raw_attacks[0][sqr] & gd.bitboards[0]) || \
+        (raw_attacks[6][sqr] & gd.bitboards[5]) || \
+        (raw_attacks[4][sqr] & gd.bitboards[4]) || \
+        (get_sliding_attacks(0, sqr, gd.occupancy[2]) & gd.bitboards[3]) || \
+        (get_sliding_attacks(1, sqr, gd.occupancy[2]) & gd.bitboards[2]) || \
+        (get_queen_attacks(sqr, gd.occupancy[2]) & gd.bitboards[1]) \
+        : \
+        (raw_attacks[0][sqr] & gd.bitboards[6]) || \
+        (raw_attacks[5][sqr] & gd.bitboards[11]) || \
+        (raw_attacks[4][sqr] & gd.bitboards[10]) || \
+        (get_sliding_attacks(0, sqr, gd.occupancy[2]) & gd.bitboards[9]) || \
+        (get_sliding_attacks(1, sqr, gd.occupancy[2]) & gd.bitboards[8]) || \
+        (get_queen_attacks(sqr, gd.occupancy[2]) & gd.bitboards[7]))
+
+
 #define encode_move(sqr, target, piece, promoted, capture, double_push, enpassant, castling) \
     (sqr) |          \
     (target << 6) |     \
@@ -36,26 +58,27 @@
 
 
 
-#define get_source_square(move) ((move) & 0x3F)
-#define get_target_square(move) (((move) >> 6) & 0x3F)
-#define get_piece(move) (((move) >> 12) & 0xF)
-#define get_promoted_piece(move) (((move) >> 16) & 0xF)
-#define is_capture(move) (((move) >> 20) & 0x1)
-#define is_double_push(move) (((move) >> 21) & 0x1)
-#define is_enpassant(move) (((move) >> 22) & 0x1)
-#define is_castling(move) (((move) >> 23) & 0x1)
+#define GET_SOURCE_SQUARE(move) ((move) & 0x3F)
+#define GET_TARGET_SQUARE(move) (((move) >> 6) & 0x3F)
+#define GET_PIECE(move) (((move) >> 12) & 0xF)
+#define GET_PROMOTED_PIECE(move) (((move) >> 16) & 0xF)
+#define IS_CAPTURE(move) (((move) >> 20) & 0x1)
+#define IS_DOUBLE_PUSH(move) (((move) >> 21) & 0x1)
+#define IS_ENPASSANT(move) (((move) >> 22) & 0x1)
+#define IS_CASTLING(move) (((move) >> 23) & 0x1)
 
 
 
 
 // //inline std::unordered_map<int, std::array<uint32_t, 100>> piece_moves;
 
-uint64_t sqr_legal_moves(int& sqr,game_data& gd);
-uint64_t refine_own_occupency_attack(int& kind , int& sqr,uint64_t& attack ,uint64_t& occupancy);
-uint64_t refine_opponent_occupency_attack(int& kind , int& sqr ,uint64_t& attack ,uint64_t& occupancy);
+// /uint64_t sqr_legal_moves(int& sqr,game_data& gd);
 int generate_moves(game_data& gd, uint32_t* move_list); // called by Movelist struct
-inline uint64_t pin_mask(game_data& gd);
-
+int legal_moves(game_data& gd, uint32_t* moves);
+void get_checks(int sqr, game_data& gd, uint64_t* arr);
+inline bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,int enpassant, int castling=0);
+inline bool is_square_attacked(game_data& gd, int sqr, int attacker_side);
+void make_move(game_data& gd , uint32_t move);
 // // struct Move {
 // //     public:
 // //         //Move(uint32_t value):_value(value){};
@@ -78,7 +101,7 @@ inline uint64_t pin_mask(game_data& gd);
 constexpr int MAX_MOVES = 256;
 
 struct MoveList {
-    void generate(game_data gd);
+    void generate(game_data& gd);
 
     const uint32_t* begin() const;
     const uint32_t* end() const;

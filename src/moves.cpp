@@ -2,24 +2,13 @@
 
 #include "../include/globals.h"
 #include "../include/bitboards.h"
-#include "../include/attacks.h"
-#include "../include/moves.h"
-#include "../include/prints.h"
+#include "../include/moves.h" // attacks.h
+//#include "../include/attacks.h"
 #include "../include/pins.h"
+#include "../include/prints.h"
 
 
 
-uint64_t refine_own_occupency_attack(int& kind , int& sqr,uint64_t& attack ,uint64_t& occupancy){
-    
-    
-    return 0;
-};
-
-uint64_t refine_opponent_occupency_attack(int& kind , int& sqr ,uint64_t& attack ,uint64_t& occupancy){
-    
-
-    return 0;
-};
 
 uint64_t sqr_legal_moves(int& sqr,game_data& gd){
     if(! (gd.occupancy[gd.side_to_move] & (1ULL << sqr) ) ){ // checking if a right piece exists
@@ -41,7 +30,7 @@ uint64_t sqr_legal_moves(int& sqr,game_data& gd){
             //uint64_t raw_attack = raw_attacks[i][sqr];
             uint64_t lm = 0ULL;
             //lm = refine_own_occupency_attack(i , sqr ,raw_attack,gd.occupancy[gd.side_to_move]); // i = piece kind 
-            lm = refine_own_occupency_attack(i , sqr ,lm, gd.occupancy[op]);
+            // /lm = refine_own_occupency_attack(i , sqr ,lm, gd.occupancy[op]);
 
             // other logics (in check / pin)
 
@@ -53,7 +42,7 @@ uint64_t sqr_legal_moves(int& sqr,game_data& gd){
 
 
 
-void MoveList::generate(game_data gd) {
+void MoveList::generate(game_data& gd) {
      _size=generate_moves(gd, move_list); 
         _last = move_list + _size;
 }
@@ -81,12 +70,10 @@ int generate_moves(game_data& gd ,uint32_t* moves){
     //    else => generate moves based on enemy pin mask
     
     int move_count=0;
-    uint64_t check_attacker[2]={0,0};
+    uint64_t check_attacker[2]={INVALID, INVALID};
     get_checks(get_first_square((!gd.side_to_move? gd.bitboards[0]: gd.bitboards[6])),gd, check_attacker);
 
-    
-
-    if(!check_attacker[0]){ // not in check
+    if(check_attacker[0]==INVALID){ // not in check
         uint64_t pins = pin_mask(gd);
 
         for(int i=(gd.side_to_move? 6 : 0) ; i < (gd.side_to_move? 12 : 6) ; i++){
@@ -98,63 +85,74 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                     while (copy_bitboard){
                         int sqr = get_first_square(copy_bitboard);
                         attack_mask = raw_attacks[i==5 ? 5 :6][sqr]; // white pawn or black
-                        uint32_t move=0;
+                        int move = INVALID;
                         while (attack_mask){
                             int target = get_first_square(attack_mask);
-                            int capture = 0;
+                            //int capture = 0;
                             int en_passant = 0;
-                            int double_push = 0;
-                            int castling=0;
-                            if(gd.occupancy[i<6 ? 1 : 0] & (1ULL << target)){ // 
-                                // pawn capture
-                                capture = 1;
-                                move = sqr;
+                            //int double_push = 0;
 
-                            }else if(gd.en_passant== (i==5 ? (target - 8) : (target + 8) ) ){
-                                // en passant move
-                                en_passant = gd.en_passant;
-                                move = sqr;
-                            };
-                            if(target <8 || target >55) {
-                                // promotions
-                                if(!(sqr & pins) || !move_and_check(gd, sqr, target, i, capture, en_passant)){ //orig_gd,sqr,target,piece,capture,enpassant
+                            if((i<6 ? (target >= 56): (target<8) ) && (gd.occupancy[i<6 ? 1 : 0] & (1ULL << target) ) ) {
+                                // promotion capture
+                                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, target, i, 1, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
                                 
-                                    for(int j=1;j<5;j++){ // queen , rook , bishop, knight
+                                    for(int j=(i< 6 ? 1 : 7);j<(i < 6 ? 5 : 11);j++){ // queen , rook , bishop, knight
                                         move = sqr;
-                                        moves[move_count]=encode_move(move, target, i, j, capture, 0, en_passant, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        moves[move_count]=encode_move(move, target, i, j, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                         move_count++;
                                         //moves[move_count -1]=move;
                                     };
-                                    move=0;
+                                    move = INVALID;
                                 }
+                            }else if(gd.occupancy[i<6 ? 1 : 0] & (1ULL << target)){ // 
+                                // pawn capture
+                                //capture = 1;
+                                move = sqr;
+
+                            }else if(gd.en_passant && gd.en_passant== target && !(gd.occupancy[2] & (1ULL << target))){
+                                // en passant capture
+                                en_passant = 1;
+                                //capture = 1;
+                                move = sqr;
                             };
-                            if(move){
-                                if(!(sqr & pins) || !move_and_check(gd, sqr, target, i, capture, en_passant)){ //orig_gd,sqr,target,piece,capture,enpassant
-                                    moves[move_count]=encode_move(move, target, i, 0, capture, double_push, en_passant, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+
+                            if(move!=INVALID){
+                                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, target, i, 1, en_passant)){ //orig_gd,sqr,target,piece,capture,enpassant
+                                    moves[move_count]=encode_move(move, target, i, 0, 1, 0, en_passant, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 }
-                                move=0;
+                                move = INVALID;
                             }
                             
                             DEL_BIT(attack_mask,target);
                         };
 
-                        if( ((int)sqr/8 == 1 && i == 5) || ((int)sqr/8 == 6 && i == 11)){
-                            if(  !(gd.occupancy[2] & ( 1ULL << (sqr + (i==5 ? 8 : -8)) ) ) && ! (gd.occupancy[2] & ( 1ULL << (sqr + (i==5 ? 16 : -16)) )) ){
-                                // double push
-                                if(!(sqr & pins) || !move_and_check(gd, sqr, (sqr + (i==5 ? 16 : -16)), i, 0, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
+                        if( !(gd.occupancy[2] & ( 1ULL << (sqr + (i==5 ? 8 : -8)) ) ) ){ 
+                            
+                            if( (i<6 ? (sqr<56 && sqr >= 48): (sqr>=8 && sqr<16) )  &&( !((1ULL << sqr) & pins) || !move_and_check(gd, sqr, (sqr + (i==5 ? 8 : -8)), i, 0, 0) ) ){
+                                // promotion
+                                for(int j=(i< 6 ? 1 : 7);j<(i < 6 ? 5 : 11);j++){ // queen , rook , bishop, knight
+                                    move = sqr;
+                                    moves[move_count]=encode_move(move, (sqr + (i==5 ? 8 : -8)), i, j, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;
+                                    //moves[move_count -1]=move;
+                                };
+
+                            }else if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, (sqr + (i==5 ? 8 : -8)), i, 0, 0)) {
+                                // single push_pawn
+                                moves[move_count]=encode_move(sqr, (sqr + (i==5 ? 8 : -8)), i, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                move_count++;
+                            };
+                            
+                            if( (((int)sqr/8 == 1 && i == 5) || ((int)sqr/8 == 6 && i == 11)) && ! (gd.occupancy[2] & ( 1ULL << (sqr + (i==5 ? 16 : -16)) )) ){
+                                    // double push
+                                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, (sqr + (i==5 ? 16 : -16)), i, 0, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
                                 
                                     moves[move_count]=encode_move(sqr, (sqr + (i==5 ? 16 : -16)), i, 0, 0, 1, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 }
-                            };
-                        };
-                        if( !(gd.occupancy[2] & ( 1ULL << (sqr + (i==5 ? 8 : -8)) ) ) ){ 
-                            // single push_pawn
-                            if(!(sqr & pins) || !move_and_check(gd, sqr, (sqr + (i==5 ? 8 : -8)), i, 0, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
-                                moves[move_count]=encode_move(sqr, (sqr + (i==5 ? 8 : -8)), i, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
-                                move_count++;
                             }
+
                         };
 
                         DEL_BIT(copy_bitboard,sqr);
@@ -168,7 +166,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                         //attack_mask = raw_attacks[i][sqr];
                         attack_mask = raw_attacks[(i == 0 || i == 6)? 0 : 4][sqr]; //king or knight
                         
-                        uint32_t move=0;
+                        int move = INVALID;
                         while (attack_mask){
                             int target = get_first_square(attack_mask);
                             int capture=0;
@@ -177,17 +175,20 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                                 // capture
                                 move = sqr;
                                 capture = 1;
-                            }else if ( !(gd.occupancy[i<6 ? 0 : 1] & (1ULL << target) ) ){ 
+                            }else if ( !(gd.occupancy[2] & (1ULL << target) ) ){ 
                                 // regular move
                                 move = sqr;
                             };
 
-                            if(move){
-                                if(!(sqr & pins) || !move_and_check(gd, sqr, target, ((i==0||i==6)?0:4), capture, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
-                                    moves[move_count]=encode_move(move, target, ((i==0||i==6)?0:4), 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                            if(move!=INVALID){
+                                if((i==0 || i==6) && !move_and_check(gd, sqr, target, i, capture, 0)){
+                                    moves[move_count]=encode_move(move, target, i, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;
+                                }else if((i==4 || i==10) &&(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, target, i, capture, 0) )){ //orig_gd,sqr,target,piece,capture,enpassant
+                                    moves[move_count]=encode_move(move, target, i, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 }
-                                move=0;
+                                move = INVALID;
                             }
                             DEL_BIT(attack_mask,target);
                         };
@@ -200,15 +201,15 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                         if(i==0 ){//white
                             if(gd.castles & 1){ // king side
                                 int kingside=1;
-                                for(int f=gd.r1+1; f<gd.k; f++ ){
+                                for(int f=gd.wr1+1; f<gd.wk; f++ ){ // between king and rook
                                     if(gd.occupancy[2] & (1ULL << f)){
                                         kingside = 0;
                                         break;
                                     };
                                 };
                                 if(kingside){
-                                    if(gd.r1>g1){
-                                        for(int f=g1; f<gd.r1; f++ ){
+                                    if(gd.wr1>g1){
+                                        for(int f=g1; f<gd.wr1; f++ ){ // between rook and g1 
                                             if(gd.occupancy[2] & (1ULL << f)){
                                                 kingside = 0;
                                                 break;
@@ -216,8 +217,16 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                                         };
                                     };
                                 };
-                                if(kingside && !is_square_attacked(gd , g1 , 1)){ // needs to cjeck also the middle road for checks
-                                    moves[move_count]=encode_move(gd.k, g1, ((i==0||i==6)?0:4), 0, 0, 0, 0, kingside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                if(kingside){
+                                    for(int sq=g1; sq<gd.wk; sq++){ // attacks between king and g1
+                                        if(IS_SQUARE_ATTACKED(gd,sq,1)){
+                                            kingside = 0;
+                                            break;                                           
+                                        }
+                                    }
+                                };
+                                if(kingside && !move_and_check(gd , gd.wk, g1, i, 0, 0, kingside) ){ //orig_gd,sqr,target,piece,capture,enpassant , castling
+                                    moves[move_count]=encode_move(gd.wk, g1, i, 0, 0, 0, 0, kingside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 };
                             
@@ -225,31 +234,55 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                             if(gd.castles & 2){ // queen side
 
                                 int queenside=1;
-                                for(int f=gd.k+1; f<gd.r2; f++ ){
-                                    if(gd.occupancy[2] & (1ULL << f)){
-                                        queenside = 0;
-                                        break;
+                                if(gd.wk <=d1){
+                                    for(int f=gd.wk+1; f<gd.wr2; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
                                     };
-                                };
+                                    if(gd.wr2 <c1){
+                                        for(int f=gd.wr2+1; f<=c1; f++ ){
+                                            if(gd.occupancy[2] & (1ULL << f)){
+                                                queenside = 0;
+                                                break;
+                                            };
+                                        };
+                                    }
+                                }else{
+                                    for(int f=gd.wk+1; f<gd.wr2; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
+                                    };
+                                    for(int f=d1; f<gd.wk; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
+                                    };
+                                }
+
                                 if(queenside){
-                                    if(gd.r2<c1){
-                                        for(int f=c1; f<gd.r2; f++ ){
-                                            if(gd.occupancy[2] & (1ULL << f)){
+                                    if(gd.wk <c1){
+                                        for(int sq=gd.wk+1; sq<=c1; sq++){
+                                            if(IS_SQUARE_ATTACKED(gd,sq,1)){
                                                 queenside = 0;
-                                                break;
-                                            };
-                                        };
-                                    }else if(gd.r2>c1){
-                                        for(int f=gd.r2+1; f<c1; f++ ){ // c1 is not checked in case of king on c1
-                                            if(gd.occupancy[2] & (1ULL << f)){
+                                                break;                                           
+                                            }
+                                        }
+                                    }else{
+                                        for(int sq=c1; sq<gd.wk; sq++){
+                                            if(IS_SQUARE_ATTACKED(gd,sq,1)){
                                                 queenside = 0;
-                                                break;
-                                            };
-                                        };
-                                    };
+                                                break;                                           
+                                            }
+                                        }
+                                    }
                                 };
-                                if(queenside && !is_square_attacked(gd , c1 , 1)){
-                                    moves[move_count]=encode_move(gd.k, c1, ((i==0||i==6)?0:4), 0, 0, 0, 0, queenside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                if(queenside && !move_and_check(gd , gd.wk, c1, i, 0, 0, queenside)){
+                                    moves[move_count]=encode_move(gd.wk, c1, i, 0, 0, 0, 0, queenside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 };
 
@@ -258,15 +291,15 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                         }else{//black
                             if(gd.castles & 4){ // king side
                                 int kingside=1;
-                                for(int f=gd.r1+56+1; f<gd.k+65; f++ ){
+                                for(int f=gd.br1+1; f<gd.bk; f++ ){
                                     if(gd.occupancy[2] & (1ULL << f)){
                                         kingside = 0;
                                         break;
                                     };
                                 };
                                 if(kingside){
-                                    if(gd.r1+56>g8){
-                                        for(int f=g8; f>gd.r1+56; f++ ){
+                                    if(gd.br1>g8){
+                                        for(int f=g8; f<gd.br1; f++ ){
                                             if(gd.occupancy[2] & (1ULL << f)){
                                                 kingside = 0;
                                                 break;
@@ -274,8 +307,16 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                                         };
                                     };
                                 };
-                                if(kingside && !is_square_attacked(gd , g8 , 0)){
-                                    moves[move_count]=encode_move(gd.k+56, g8, ((i==0||i==6)?0:4), 0, 0, 0, 0, kingside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                if(kingside){
+                                    for(int sq=g8; sq<gd.bk; sq++){
+                                        if(IS_SQUARE_ATTACKED(gd,sq,0)){
+                                            kingside = 0;
+                                            break;                                           
+                                        }
+                                    }
+                                };                                
+                                if(kingside && !move_and_check(gd , gd.bk, g8, i, 0, 0, kingside)){
+                                    moves[move_count]=encode_move(gd.bk, g8, i, 0, 0, 0, 0, kingside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 };
                             
@@ -283,31 +324,55 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                             if(gd.castles & 8){ // queen side
 
                                 int queenside=1;
-                                for(int f=gd.k+56+1; f<gd.r2+56; f++ ){
-                                    if(gd.occupancy[2] & (1ULL << f)){
-                                        queenside = 0;
-                                        break;
+                                if(gd.bk <=d8){
+                                    for(int f=gd.bk+1; f<gd.br2; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
                                     };
-                                };
+                                    if(gd.br2 <c8){
+                                        for(int f=gd.br2+1; f<=c8; f++ ){
+                                            if(gd.occupancy[2] & (1ULL << f)){
+                                                queenside = 0;
+                                                break;
+                                            };
+                                        };
+                                    }
+                                }else{
+                                    for(int f=gd.bk+1; f<gd.br2; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
+                                    };
+                                    for(int f=d8; f<gd.bk; f++ ){
+                                        if(gd.occupancy[2] & (1ULL << f)){
+                                            queenside = 0;
+                                            break;
+                                        };
+                                    };
+                                }
+
                                 if(queenside){
-                                    if(gd.r2+56<c8){
-                                        for(int f=c8; f<gd.r2+56; f++ ){
-                                            if(gd.occupancy[2] & (1ULL << f)){
+                                    if(gd.bk < c8){
+                                        for(int sq=gd.bk+1; sq<=c8; sq++){
+                                            if(IS_SQUARE_ATTACKED(gd,sq,0)){
                                                 queenside = 0;
-                                                break;
-                                            };
-                                        };
-                                    }else if(gd.r2+56>c8){
-                                        for(int f=gd.r2+56+1; f<c8; f++ ){ // c1 is not checked in case of king on c1
-                                            if(gd.occupancy[2] & (1ULL << f)){
+                                                break;                                           
+                                            }
+                                        }
+                                    }else{
+                                        for(int sq=c8; sq<gd.bk; sq++){
+                                            if(IS_SQUARE_ATTACKED(gd,sq,0)){
                                                 queenside = 0;
-                                                break;
-                                            };
-                                        };
-                                    };
+                                                break;                                           
+                                            }
+                                        }
+                                    }
                                 };
-                                if(queenside && !is_square_attacked(gd , c8 , 0)){
-                                    moves[move_count]=encode_move(gd.k+56, c8, ((i==0||i==6)?0:4), 0, 0, 0, 0, queenside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                if(queenside && !move_and_check(gd , gd.bk, c8, i, 0, 0, queenside)){
+                                    moves[move_count]=encode_move(gd.bk, c8, i, 0, 0, 0, 0, queenside);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 };
 
@@ -323,10 +388,10 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                         if(i==1 || i==7){ // queen
                             attack_mask = get_queen_attacks(sqr, gd.occupancy[2]);
                         }else{ // i=2,3,8,9
-                            attack_mask = get_sliding_attacks( (i==3||i==10) ? 0 : 1,sqr, gd.occupancy[2]); // bishop or rook
+                            attack_mask = get_sliding_attacks( (i==3||i==9) ? 0 : 1,sqr, gd.occupancy[2]); // bishop or rook
                         };
                         
-                        uint32_t move=0;
+                        int move = INVALID;
                         while (attack_mask){
                             int target = get_first_square(attack_mask);
                             int capture=0;
@@ -334,24 +399,16 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                                 // capture
                                 move = sqr;
                                 capture =1;
-                            }else if ( !(gd.occupancy[i<6 ? 0 : 1] & (1ULL << target) ) ){ 
+                            }else if ( !(gd.occupancy[2] & (1ULL << target) ) ){ 
                                 // regular move
                                 move = sqr;
                             };
-                            if(move){
-                                int piece;
-                                if(i==1 || i==7){//queen
-                                    piece=1;
-                                }else if(i==2 || i==8){//rook
-                                    piece=2;
-                                }else{
-                                    piece=3;
-                                };
-                                if(!(sqr & pins) || !move_and_check(gd, sqr, target, piece, capture, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
-                                    moves[move_count]=encode_move(move, target, piece, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                            if(move!=INVALID){
+                                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, target, i, capture, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
+                                    moves[move_count]=encode_move(move, target, i, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                                     move_count++;
                                 };
-                                move=0;
+                                move = INVALID;
                             };
                             DEL_BIT(attack_mask,target);
                         };
@@ -362,13 +419,13 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             }
         }
     
-    }else if(check_attacker[1]){// double check
+    }else if(check_attacker[1]!=INVALID){// at least double check
         //move the king to a square thats not attacked
-        uint64_t attacker_attacks;
+        
         if(!gd.side_to_move){//white king
             int king_sqr = get_first_square(gd.bitboards[0]);
             uint64_t king_attacks = raw_attacks[0][king_sqr];
-            int move=0; int capture=0;
+            int move = INVALID; int capture=0;
             while(king_attacks){
                 int target = get_first_square(king_attacks);
                 if(gd.occupancy[1] & (1ULL << target)){ // 
@@ -379,19 +436,20 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                     // regular move
                     move = king_sqr;
                 };
-                if(move && !is_square_attacked(gd, move, 1)){ // black is attacker
+                if(move!=INVALID && !move_and_check(gd, move, target, 0, capture, 0)){ // black is attacker
                     // test if its still in check after the move
                     
                     moves[move_count]=encode_move(move, target, 0, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++; 
                 }
-
+                move = INVALID;
+                capture =0;
                 DEL_BIT(king_attacks,target);
             }
         }else{// black king
             int king_sqr = get_first_square(gd.bitboards[6]);
             uint64_t king_attacks = raw_attacks[0][king_sqr];
-            int move=0; int capture=0;
+            int move = INVALID; int capture=0;
             while(king_attacks){
                 int target = get_first_square(king_attacks);
                 if(gd.occupancy[0] & (1ULL << target)){ // 
@@ -402,13 +460,14 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                     // regular move
                     move = king_sqr;
                 };
-                if(move && !is_square_attacked(gd, move, 0)){ // white is attacker
+                if(move!=INVALID && !move_and_check(gd, move, target, 6, capture, 0)){ // white is attacker
                     // test if its still in check after the move
                     
                     moves[move_count]=encode_move(move, target, 6, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++; 
                 }
-
+                move = INVALID;
+                capture = 0;
                 DEL_BIT(king_attacks,target);
             }
         }
@@ -431,27 +490,27 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                 int sqr = get_first_square(wpa);
                 if((int)check_attacker[0]/8 ==7){
                     // promotions
-                    if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 5, 1, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
+                    if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 5, 1, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
 
                         for(int j=1;j<5;j++){ // queen , rook , bishop, knight
-                            moves[move_count]=encode_move(sqr, check_attacker[0], 5, 1, j, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                            moves[move_count]=encode_move(sqr, check_attacker[0], 5, j, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                             move_count++;
                             //moves[move_count -1]=move;
                         };
                     };
                 
-                }else if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 5, 1, 0)){
+                }else if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 5, 1, 0)){
                     moves[move_count]=encode_move(sqr, check_attacker[0], 5, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;                
                 }  
                 DEL_BIT(wpa,sqr);
             };
             // en passant capture the attacker.
-            if(gd.en_passant== (check_attacker[0] + 8)){
+            if(gd.en_passant && (gd.en_passant == check_attacker[0] + 8)){
                 uint64_t enpass_wpa = raw_attacks[6][check_attacker[0] + 8] & gd.bitboards[5];
                 while(enpass_wpa){
                     int sqr = get_first_square(enpass_wpa);
-                    if(!(sqr & pins) || !move_and_check(gd, sqr, (check_attacker[0] + 8), 5, 1, 1)){//orig_gd,sqr,target,piece,capture,enpassant
+                    if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, (check_attacker[0] + 8), 5, 1, 1)){//orig_gd,sqr,target,piece,capture,enpassant
                         moves[move_count]=encode_move(sqr, (check_attacker[0] + 8), 5, 0, 1, 0, 1, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                         move_count++; 
                     }
@@ -463,7 +522,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             uint64_t wna = raw_attacks[4][check_attacker[0]] & gd.bitboards[4];
             while(wna){ 
                 int sqr = get_first_square(wna);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 4, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 4, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 4, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++; 
                 }  
@@ -478,7 +537,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
 
             while (bishand){ 
                 int sqr = get_first_square(bishand);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 3, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 3, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 3, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++; 
                 }  
@@ -486,7 +545,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             };
             while (rookand){ 
                 int sqr = get_first_square(rookand);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 2, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 2, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 2, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++; 
                 }  
@@ -494,7 +553,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             };
             while (queenand){ 
                 int sqr = get_first_square(queenand);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 1, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 1, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 1, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;  
                 }  
@@ -508,26 +567,26 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                 int sqr = get_first_square(bpa);
                 if((int)check_attacker[0]/8 ==0){
                     // promotions
-                    if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0],11, 1, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
+                    if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0],11, 1, 0)){ //orig_gd,sqr,target,piece,capture,enpassant
 
-                        for(int j=1;j<5;j++){ // queen , rook , bishop, knight
-                            moves[move_count]=encode_move(sqr, check_attacker[0], 11, 1, j, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                        for(int j=7;j<11;j++){ // queen , rook , bishop, knight
+                            moves[move_count]=encode_move(sqr, check_attacker[0], 11, j, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                             move_count++;
                             //moves[move_count -1]=move;
                         };
                     };
-                }else if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 11, 1, 0)){
+                }else if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 11, 1, 0)){
                     moves[move_count]=encode_move(sqr, check_attacker[0], 11, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;                
                 }  
                 DEL_BIT(bpa,sqr);
             };
             // en passant capture the attacker.
-            if(gd.en_passant== (check_attacker[0] - 8)){
+            if(gd.en_passant && (gd.en_passant == check_attacker[0] - 8)){
                 uint64_t enpass_wpa = raw_attacks[5][check_attacker[0] - 8] & gd.bitboards[11];
                 while(enpass_wpa){
                     int sqr = get_first_square(enpass_wpa);
-                    if(!(sqr & pins) || !move_and_check(gd, sqr, (check_attacker[0] - 8), 11, 1, 1)){//orig_gd,sqr,target,piece,capture,enpassant
+                    if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, (check_attacker[0] - 8), 11, 1, 1)){//orig_gd,sqr,target,piece,capture,enpassant
                         moves[move_count]=encode_move(sqr, (check_attacker[0] - 8), 11, 0, 1, 0, 1, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                         move_count++; 
                     }
@@ -539,7 +598,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             uint64_t bna = raw_attacks[4][check_attacker[0]] & gd.bitboards[10];
             while(bna){ 
                 int sqr = get_first_square(bna);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 10, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 10, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 10, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;  
                 }  
@@ -547,12 +606,12 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             };
 
             uint64_t bishand = (get_sliding_attacks(0,check_attacker[0],gd.occupancy[2]) & gd.bitboards[9]);
-            uint64_t rookand = (get_sliding_attacks(1,check_attacker[0],gd.occupancy[2]) & ( gd.bitboards[8] ));
-            uint64_t queenand = (get_queen_attacks(check_attacker[0], gd.occupancy[2] & gd.bitboards[7]));
+            uint64_t rookand = (get_sliding_attacks(1,check_attacker[0],gd.occupancy[2]) &  gd.bitboards[8]);
+            uint64_t queenand = (get_queen_attacks(check_attacker[0], gd.occupancy[2]) & gd.bitboards[7]);
 
             while (bishand){ 
                 int sqr = get_first_square(bishand); 
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 9, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 9, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 9, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;  
                 } 
@@ -560,7 +619,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             };
             while (rookand){ 
                 int sqr = get_first_square(rookand);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 8, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 8, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 8, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;  
                 }  
@@ -568,7 +627,7 @@ int generate_moves(game_data& gd ,uint32_t* moves){
             };
             while (queenand){ 
                 int sqr = get_first_square(queenand);
-                if(!(sqr & pins) || !move_and_check(gd, sqr, check_attacker[0], 7, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
+                if(!((1ULL << sqr) & pins) || !move_and_check(gd, sqr, check_attacker[0], 7, 1, 0)){//orig_gd,sqr,target,piece,capture,enpassant
                     moves[move_count]=encode_move(sqr, check_attacker[0], 7, 0, 1, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
                     move_count++;  
                 }  
@@ -578,11 +637,11 @@ int generate_moves(game_data& gd ,uint32_t* moves){
         }
           
         // move the king to a square thats not attacked
-        uint64_t attacker_attacks;
+        
         if(!gd.side_to_move){//white king
             int king_sqr = get_first_square(gd.bitboards[0]);
             uint64_t king_attacks = raw_attacks[0][king_sqr];
-            int move=0; int capture=0;
+            int move = INVALID; int capture=0;
             while(king_attacks){
                 int target = get_first_square(king_attacks);
                 if(gd.occupancy[1] & (1ULL << target)){ // 
@@ -593,19 +652,21 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                     // regular move
                     move = king_sqr;
                 };
-                if(move && !is_square_attacked(gd, move, 1)){ // black is attacker
+                //if(IS_SQUARE_ATTACKED(gd, move, 1)){move = INVALID;}
+                if(move!=INVALID && !move_and_check(gd,move, target, 0, capture, 0)){ // black is attacker
                     // test if its still in check after the move
                     
                     moves[move_count]=encode_move(move, target, 0, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
-                    move_count++; 
+                    move_count++;
                 }
-
+                move = INVALID; 
+                capture = 0;
                 DEL_BIT(king_attacks,target);
             }
         }else{// black king
             int king_sqr = get_first_square(gd.bitboards[6]);
             uint64_t king_attacks = raw_attacks[0][king_sqr];
-            int move=0; int capture=0;
+            int move = INVALID; int capture=0;
             while(king_attacks){
                 int target = get_first_square(king_attacks);
                 if(gd.occupancy[0] & (1ULL << target)){ // 
@@ -616,124 +677,442 @@ int generate_moves(game_data& gd ,uint32_t* moves){
                     // regular move
                     move = king_sqr;
                 };
-                if(move && !is_square_attacked(gd, move, 0)){ // white is attacker
+                //if(IS_SQUARE_ATTACKED(gd, move, 0)){move = INVALID;}
+                if(move!=INVALID && !move_and_check(gd,move, target, 6, capture, 0)){ // white is attacker
                     // test if its still in check after the move
                     
                     moves[move_count]=encode_move(move, target, 6, 0, capture, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
-                    move_count++; 
+                    move_count++;
                 }
-
+                move = INVALID; 
+                capture = 0;
                 DEL_BIT(king_attacks,target);
             }
         }
         
+        //block the direction of the attack
+        
+
+        for(int a_piece=(gd.side_to_move? 0 : 6); a_piece< (gd.side_to_move? 6 : 12); a_piece++){
+            if(gd.bitboards[a_piece] & (1ULL << check_attacker[0])){ // found the attacker kind
+                if(a_piece< (gd.side_to_move ? 4 : 10) && a_piece >(gd.side_to_move? 0 : 6) ){ // blocking sliding attacks only
+
+                    int king_sqr =  get_first_square(!gd.side_to_move? gd.bitboards[0]: gd.bitboards[6]);
+                    int king_rank = (int)king_sqr/8;
+                    int attacker_rank = (int)check_attacker[0]/8; 
+
+                    int king_file = (int)king_sqr%8;
+                    int attacker_file = (int)check_attacker[0]%8;
+
+                    uint64_t mask = 0ULL;
+
+                    if(king_rank == attacker_rank){ //same rank
+                        //mask |= (((1ULL << (king_sqr>check_attacker[0]? (king_sqr-1) : (check_attacker[0]-1) )) - 1) >> (king_sqr>check_attacker[0]?  check_attacker[0] : king_sqr )) << ((king_sqr>check_attacker[0]? check_attacker[0] : king_sqr )-1);
+                        mask |= direction_attack_tables[king_sqr>check_attacker[0]? HORIZ_R : HORIZ_L][check_attacker[0]][1ULL << king_sqr];
+                  
+                    }else if (king_file == attacker_file){ // same file
+                        
+                        // for (int rank = std::min((int)king_sqr/8 , (int)check_attacker[0]/8 ) + 1; rank < std::max((int)king_sqr/8 , (int)check_attacker[0]/8); ++rank) {
+                        //     mask |= (1ULL << ((int)king_sqr%8 + rank * 8));
+                        // }
+                        mask |= direction_attack_tables[king_sqr>check_attacker[0]? VERTIC_B : VERTIC_T][check_attacker[0]][1ULL << king_sqr];
+
+                    }else{ // diagonal
+                        if(check_attacker[0] > king_sqr){ // T
+                        
+                            if((int)check_attacker[0]%8 < (int)king_sqr%8){ // 0
+                                mask |= direction_attack_tables[DIAG_RT][check_attacker[0]][1ULL << king_sqr];
+                            }else{ // 3
+                                mask |= direction_attack_tables[DIAG_LT][check_attacker[0]][1ULL << king_sqr];
+                            }
+                        }else{ // B
+
+                            if((int)check_attacker[0]%8 < (int)king_sqr%8){ //2
+                                mask |= direction_attack_tables[DIAG_RB][check_attacker[0]][1ULL << king_sqr];
+                            }else{ //1
+                                mask |= direction_attack_tables[DIAG_LB][check_attacker[0]][1ULL << king_sqr];
+                            }
+                        }
+                    };
+
+                    while(mask){
+                        int target = get_first_square(mask);
+                        
+                        if(!gd.side_to_move){ // white to move - white king in check
+
+                            uint64_t wpp = target - 8; // pawn push (cant be a capture)
+                            if (wpp>0 && ((1ULL << wpp) & gd.bitboards[5]) && (!((1ULL << wpp) & pins) || !move_and_check(gd, wpp, target, 5, 0, 0))){ //orig_gd,sqr,target,piece,capture,enpassant
+                                
+                                if((int)target/8 == 7){ 
+                                    // promotion
+                                    for(int j=1;j<5;j++){ // queen , rook , bishop, knight
+                                        moves[move_count]=encode_move(wpp, target, 5, j, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++;
+                                        //moves[move_count -1]=move;
+                                    };
+                                }else{ // single push
+                                    moves[move_count]=encode_move(wpp, target, 5, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++; 
+                                }
+
+                            }
+                           
+                            if( ((target-8) >0)  && (int)target/8 == 3 && !(gd.occupancy[2] & (1ULL<< (target-8)))){
+
+                                uint64_t wdp = target - 16;
+                                if (wdp>0 && ((1ULL << wdp) & gd.bitboards[5]) && (!((1ULL << wdp) & pins) || !move_and_check(gd, wdp, target, 5, 0, 0))){ //orig_gd,sqr,target,piece,capture,enpassant
+                                    moves[move_count]=encode_move(wdp, target, 5, 0, 0, 1, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;                                
+                                }
+                            }
+                            
+                            uint64_t wna = raw_attacks[4][target] & gd.bitboards[4];
+                            while(wna){
+                                int wna_s =get_first_square(wna);
+
+                                    if(!((1ULL << wna_s) & pins) || !move_and_check(gd, wna_s, target, 4, 0, 0)){ 
+                                        moves[move_count]=encode_move(wna_s, target, 4, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(wna,wna_s);
+                            }
+                            
+
+                            uint64_t bishand = get_sliding_attacks(0,target,gd.occupancy[2])& gd.bitboards[3];
+                            uint64_t rookand = get_sliding_attacks(1,target,gd.occupancy[2])& gd.bitboards[2];
+                            uint64_t queenand = get_queen_attacks(target, gd.occupancy[2])& gd.bitboards[1];
+
+                            while(bishand){
+                                int bishand_s = get_first_square(bishand);
+
+                                    if (!((1ULL << bishand_s) & pins) || !move_and_check(gd, bishand_s, target, 3, 0, 0)){
+                                        moves[move_count]=encode_move(bishand_s, target, 3, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(bishand,bishand_s);
+                            }
+                            while(rookand){
+                                int rookand_s = get_first_square(rookand);
+                                
+                                if (!((1ULL << rookand_s) & pins) || !move_and_check(gd, rookand_s, target, 2, 0, 0)){ 
+                                    moves[move_count]=encode_move(rookand_s, target, 2, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;                                
+                                }
+                                DEL_BIT(rookand,rookand_s);
+                            }
+                            while(queenand){
+                                int queenand_s = get_first_square(queenand);
+
+                                    if (!((1ULL << queenand_s) & pins) || !move_and_check(gd, queenand_s, target, 1, 0, 0)){
+                                        moves[move_count]=encode_move(queenand_s, target, 1, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(queenand,queenand_s);
+                            }
+
+                        }else{ // black to move - black king in check
+                            
+                            uint64_t bpp = target + 8; // pawn push (cant be a capture)
+                            if ( (bpp<64) && ((1ULL << bpp) & gd.bitboards[11]) &&(!((1ULL << bpp) & pins) || !move_and_check(gd, bpp, target, 11, 0, 0))){ //orig_gd,sqr,target,piece,capture,enpassant
+                                
+                                if((int)target/8 == 0){
+                                    for(int j=7;j<11;j++){ // queen , rook , bishop, knight
+                                        moves[move_count]=encode_move(bpp, target, 11, j, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++;
+                                        //moves[move_count -1]=move;
+                                    };
+                                }else{ // single push
+                                    moves[move_count]=encode_move(bpp, target, 11, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++; 
+                                }
+
+                            };
+
+                            if( (int)target/8 == 4 && !(gd.occupancy[2] & (1ULL<< (target + 8)))){
+
+                                uint64_t bdp = target + 16;
+                                if (((1ULL << bdp) & gd.bitboards[11]) && (!((1ULL << bdp) & pins) || !move_and_check(gd, bdp, target, 11, 0, 0))){ //orig_gd,sqr,target,piece,capture,enpassant
+                                    moves[move_count]=encode_move(bdp, target, 11, 0, 0, 1, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;                                
+                                }
+                            }
+
+                            uint64_t bna = raw_attacks[4][target] & gd.bitboards[10];
+                            while(bna){
+                                int bna_s =get_first_square(bna);
+
+                                    if(!((1ULL << bna_s) & pins) || !move_and_check(gd, bna_s, target, 10, 0, 0)){ 
+                                        moves[move_count]=encode_move(bna_s, target, 10, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(bna,bna_s);
+                            }
+                            
+
+                            uint64_t bishand = (get_sliding_attacks(0,target,gd.occupancy[2]) & gd.bitboards[9]);
+                            uint64_t rookand = (get_sliding_attacks(1,target,gd.occupancy[2]) & gd.bitboards[8]);
+                            uint64_t queenand = (get_queen_attacks(target, gd.occupancy[2]) & gd.bitboards[7]);
+
+
+                            while(bishand){
+                                int bishand_s = get_first_square(bishand);
+
+                                    if (!((1ULL << bishand_s) & pins) || !move_and_check(gd, bishand_s, target, 9, 0, 0)){
+                                        moves[move_count]=encode_move(bishand_s, target, 9, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(bishand,bishand_s);
+                            }
+                            while(rookand){
+                                int rookand_s = get_first_square(rookand);
+                                
+                                if (!((1ULL << rookand_s) & pins) || !move_and_check(gd, rookand_s, target, 8, 0, 0)){ 
+                                    moves[move_count]=encode_move(rookand_s, target, 8, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                    move_count++;                                
+                                }
+                                DEL_BIT(rookand,rookand_s);
+                            }
+                            while(queenand){
+                                int queenand_s = get_first_square(queenand);
+
+                                    if (!((1ULL << queenand_s) & pins) || !move_and_check(gd, queenand_s, target, 7, 0, 0)){
+                                        moves[move_count]=encode_move(queenand_s, target, 7, 0, 0, 0, 0, 0);//sqr, target, piece, promoted, capture, double_push, enpassant, castling
+                                        move_count++; 
+                                    }
+                                DEL_BIT(queenand,queenand_s);
+                            }
+
+                        }
+
+                        DEL_BIT(mask,target);
+                    }
+                }
+
+                break;
+            }
+        }
 
     }
     
     return move_count;
 };
 
-
-
-
-inline bool make_move(game_data& gd, int sqr, int target){ // move list
+void make_move(game_data& gd , uint32_t move){ // move list
     // assuming that if the side is on check the wrong moves are filterd out and only remains blocking or attacker capturing moves.
     // if not on check go ahead and calculate proper moves and make them
-    uint64_t pins = pin_mask(gd);
-    for(uint32_t move : gd.piece_moves){
 
+
+    int sqr = GET_SOURCE_SQUARE(move);
+    int target = GET_TARGET_SQUARE(move);
+    int piece = GET_PIECE(move);
+    int promote = GET_PROMOTED_PIECE(move);
+    int capture = IS_CAPTURE(move);
+    int double_push = IS_DOUBLE_PUSH(move);
+    int enpassant = IS_ENPASSANT(move);
+    int castling = IS_CASTLING(move);
+
+    if(enpassant){
+        // algorith =>  delete own piece / delete own occupancy / delete total occupancy (sqr)
+        //              delete enemy piece/ delete enemy occupancy / delete total occupancy (enpassant_target)
+        //              put own square / put own occupancy / put total occupancy (target) 
+        int en_passant_target = target + (piece<6 ? -8 : 8);
+        DEL_BIT(gd.bitboards[piece],sqr); // delete own sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete own occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
+            if(gd.bitboards[j] & (1ULL << en_passant_target)){
+                DEL_BIT(gd.bitboards[j],en_passant_target); // delete enemy piece
+                break;
+            }
+        }
+        DEL_BIT(gd.occupancy[piece<6 ? 1 : 0],en_passant_target); // delete enemy occupancy
+        DEL_BIT(gd.occupancy[2],en_passant_target); // delete total occupancy
+
+        PUT_BIT(gd.bitboards[piece],target); // put own square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put own occupancy
+        PUT_BIT(gd.occupancy[2],target); // put total occupancy
+    
+    }else if (promote && capture){
+        DEL_BIT(gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
+            if(gd.bitboards[j] & (1ULL << target)){
+                DEL_BIT(gd.bitboards[j],target); // delete enemy piece and occupancy but not the total occupancy
+                break;
+            }
+        }
+        DEL_BIT(gd.occupancy[piece<6 ? 1 : 0],target); // delete enemy occupancy
+
+        PUT_BIT(gd.bitboards[promote],target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+
+    }else if (promote && !capture){
+        DEL_BIT(gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        PUT_BIT(gd.bitboards[promote],target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+        PUT_BIT(gd.occupancy[2],target); // put in total occupancy
+    
+    }else if(castling){
+        //1-remove the king , 2-remove the rook , 3- remove king bitboard 4- remove rook bitboard 5- remove occupancy 6-remove total occupancy 
+        //7- add all the previous steps
+
+       int rook_sqr;  int rook_i; int rook_target;
+
+       if (target == g1){// white kingside
+           rook_sqr = gd.wr1; rook_i = 2; rook_target = f1;    
+       }else if (target == c1){
+            rook_sqr = gd.wr2; rook_i = 2; rook_target = d1; 
+       }else if (target == g8){
+            rook_sqr = gd.br1; rook_i = 8; rook_target = f8; 
+       }else if (target == c8){
+            rook_sqr = gd.br2; rook_i = 8; rook_target = d8; 
+       }
+        DEL_BIT(gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        PUT_BIT(gd.bitboards[piece],target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+        PUT_BIT(gd.occupancy[2],target); // put in total occupancy
+        
+        ////////
+
+        DEL_BIT(gd.bitboards[rook_i],rook_sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],rook_sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],rook_sqr); // delete total occupancy
+
+        PUT_BIT(gd.bitboards[rook_i],rook_target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],rook_target); // put in occupancy
+        PUT_BIT(gd.occupancy[2],rook_target); // put in total occupancy
+    
+    }else if(!capture){ // simple moves
+
+        DEL_BIT(gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        PUT_BIT(gd.bitboards[piece],target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+        PUT_BIT(gd.occupancy[2],target); // put in total occupancy
+
+    }else{// capture
+    
+        DEL_BIT(gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(gd.occupancy[2],sqr); // delete total occupancy
+
+        for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
+            if(gd.bitboards[j] & (1ULL << target)){
+                DEL_BIT(gd.bitboards[j],target); // delete enemy piece and occupancy but not the total occupancy
+                break;
+            }
+        }
+        DEL_BIT(gd.occupancy[piece<6 ? 1 : 0],target); // delete enemy occupancy
+
+        PUT_BIT(gd.bitboards[piece],target); // put square
+        PUT_BIT(gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+    };
+
+    if(gd.side_to_move){gd.fullmove++;};
+
+    if(double_push){ gd.en_passant = (piece < 6 ? (target - 8) : (target + 8) ); }else{gd.en_passant = 0;}
+    
+    if(piece == 5 || piece == 11 || capture){
+        gd.halfmove = 0;
+    }else{
+        gd.halfmove ++;
+    };
+    if(gd.castles){
+        
+        if(piece == 0 || piece == 6){
+            gd.side_to_move ? gd.castles &= ~12 : gd.castles &= ~3;
+        }
+        if(sqr == gd.wr1 || target == gd.wr1){
+            gd.castles &= ~1;
+        }
+        if(sqr == gd.wr2 || target == gd.wr2){
+            gd.castles &= ~2;           
+        }
+        if(sqr == gd.br1 || target == gd.br1){
+            gd.castles &= ~4;            
+        }
+        if(sqr == gd.br2 || target == gd.br2){
+            gd.castles &= ~8;           
+        }
     }
-
+    gd.side_to_move ^= 1;
 }
 
 
 
 // is square current given attacked by the current given side
-void get_checks(int sqr, game_data& gd, uint64_t* arr){
+inline void get_checks(int sqr, game_data& gd, uint64_t* arr){
     
     if(gd.side_to_move){ // black to move - black king in check
 
         uint64_t wpa = raw_attacks[6][sqr] & gd.bitboards[5]; // we put a black pawn in kings square to get white pawns attacks
-        if(wpa){ arr[0] = wpa;}
+        if(wpa){ arr[0] = get_first_square(wpa);}
         
         uint64_t wna = raw_attacks[4][sqr] & gd.bitboards[4];
-        if(wna){ if(!arr[0]){ arr[0]= wna;}else{arr[1]=wna;}}
+        if(wna){ if(arr[0]==INVALID){ arr[0]= get_first_square(wna);}else{arr[1]=1;}}
         
 
         uint64_t bishand = get_sliding_attacks(0,sqr,gd.occupancy[2])& gd.bitboards[3];
         uint64_t rookand = get_sliding_attacks(1,sqr,gd.occupancy[2])& gd.bitboards[2];
         uint64_t queenand = get_queen_attacks(sqr, gd.occupancy[2])& gd.bitboards[1];
 
-        if (bishand ){ if(!arr[0]){ arr[0]= bishand ;}else{arr[1]=bishand;}}
-        if (rookand ){ if(!arr[0]){ arr[0]= rookand ;}else{arr[1] = rookand;}}
-        if (queenand ){ if(!arr[0]){ arr[0]= queenand ;}else{arr[1]=queenand;}}
+        if (bishand ){ if(arr[0]==INVALID){ arr[0]= get_first_square(bishand) ;}else{arr[1]=1;}}
+        //if (rookand ){ if(arr[0]==INVALID){ arr[0]= get_first_square(rookand) ;}else{arr[1] = 1;}}
+        while(rookand){
+            int rookand_s = get_first_square(rookand);
+            if(arr[0]==INVALID){ arr[0]= rookand_s;}else{arr[1] = 1;};
+            DEL_BIT(rookand,rookand_s);
+        }
+        //if (queenand ){ if(arr[0]==INVALID){ arr[0]= get_first_square(queenand) ;}else{arr[1]=1;}}
+        
+        while(queenand){
+            int queenand_s = get_first_square(queenand);
+            if(arr[0]==INVALID){ arr[0]= queenand_s;}else{arr[1] = 1;};
+            DEL_BIT(queenand,queenand_s);
+        }
 
     }else{
         
         uint64_t bpa = raw_attacks[5][sqr] & gd.bitboards[11]; // we put a white pawn in kings square to get black pawns attacks
-        if(bpa){ if(!arr[0]){ arr[0]= bpa;}else{arr[1]=bpa;}}
+        if(bpa){ if(arr[0]==INVALID){ arr[0]= get_first_square(bpa);}else{arr[1]=1;}}
 
         uint64_t bna = raw_attacks[4][sqr] & gd.bitboards[10];
-        if(bna){ if(!arr[0]){ arr[0]= bna;}else{arr[1]=bna;}}
+        if(bna){ if(arr[0]==INVALID){ arr[0]= get_first_square(bna);}else{arr[1]=1;}}
 
         uint64_t bishand = (get_sliding_attacks(0,sqr,gd.occupancy[2]) & gd.bitboards[9]);
-        uint64_t rookand = (get_sliding_attacks(1,sqr,gd.occupancy[2]) & ( gd.bitboards[8] ));
-        uint64_t queenand = (get_queen_attacks(sqr, gd.occupancy[2] & gd.bitboards[7]));
+        uint64_t rookand = (get_sliding_attacks(1,sqr,gd.occupancy[2]) &  gd.bitboards[8]);
+        uint64_t queenand = (get_queen_attacks(sqr, gd.occupancy[2]) & gd.bitboards[7]);
 
-        if (bishand){ if(!arr[0]){ arr[0]= bishand;}else{arr[1]=bishand;}}
-        if (rookand){ if(!arr[0]){ arr[0]= rookand;}else{arr[1]=rookand;}}
-        if (queenand){ if(!arr[0]){ arr[0]= queenand;}else{arr[1]=queenand;}}
+        if (bishand){ if(arr[0]==INVALID){ arr[0]= get_first_square(bishand);}else{arr[1]=1;}}
+                while(rookand){
+            int rookand_s = get_first_square(rookand);
+            if(arr[0]==INVALID){ arr[0]= rookand_s;}else{arr[1] = 1;};
+            DEL_BIT(rookand,rookand_s);
+        }
+        while(queenand){
+            int queenand_s = get_first_square(queenand);
+            if(arr[0]==INVALID){ arr[0]= queenand_s;}else{arr[1] = 1;};
+            DEL_BIT(queenand,queenand_s);
+        }
 
     }
+    //if(arr[0]!=INVALID){print_chessboard(gd);}
     
 }
 
-bool is_square_attacked(game_data& gd, int sqr, int attacker_side){ // 0 - white attacker_side / 1 - black attacker side
     
-    if(!attacker_side){ // white is attacker
-       
-        uint64_t wka = raw_attacks[0][sqr] & gd.bitboards[0];
-        if(wka){return true;}
-  
-        uint64_t wpa = raw_attacks[6][sqr] & gd.bitboards[5]; // we put a black pawn in kings square to get white pawns attacks
-        if(wpa){ return true;}
-        
-        uint64_t wna = raw_attacks[4][sqr] & gd.bitboards[4];
-        if(wna){ return true;}
-        
-
-        uint64_t bishand = get_sliding_attacks(0,sqr,gd.occupancy[2])& gd.bitboards[3];
-        uint64_t rookand = get_sliding_attacks(1,sqr,gd.occupancy[2])& gd.bitboards[2];
-        uint64_t queenand = get_queen_attacks(sqr, gd.occupancy[2])& gd.bitboards[1];
-
-        if (bishand ){ return true;}
-        if (rookand ){ return true;}
-        if (queenand ){ return true;}
-        
-
-    }else{
-        
-        uint64_t bpa = raw_attacks[5][sqr] & gd.bitboards[11]; // we put a white pawn in kings square to get black pawns attacks
-        if(bpa){return true;}
-
-        uint64_t bna = raw_attacks[4][sqr] & gd.bitboards[10];
-        if(bna){ return true;}
-
-        uint64_t bishand = (get_sliding_attacks(0,sqr,gd.occupancy[2]) & gd.bitboards[9]);
-        uint64_t rookand = (get_sliding_attacks(1,sqr,gd.occupancy[2]) & ( gd.bitboards[8] ));
-        uint64_t queenand = (get_queen_attacks(sqr, gd.occupancy[2] & gd.bitboards[7]));
-
-        if (bishand){ return true;}
-        if (rookand){ return true;}
-        if (queenand){ return true;}
-
-    }
-
-    return false;
-    
-}
-    
-bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,int enpassant){
+inline bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,int enpassant,int castling){
     
     game_data copy_gd = game_data(orig_gd); // using copy constructor
     
@@ -741,12 +1120,12 @@ bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,
         // algorith =>  delete own piece / delete own occupancy / delete total occupancy (sqr)
         //              delete enemy piece/ delete enemy occupancy / delete total occupancy (enpassant_target)
         //              put own square / put own occupancy / put total occupancy (target) 
-        int en_passant_target = target + (piece<6 ? 8 : -8);
+        int en_passant_target = target + (piece<6 ? -8 : 8);
         DEL_BIT(copy_gd.bitboards[piece],sqr); // delete own sqr
         DEL_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],sqr); // delete own occupancy
         DEL_BIT(copy_gd.occupancy[2],sqr); // delete total occupancy
-        int j;
-        for(j=(piece<6? 6: 0); j<(piece<6 ? 6 : 12); j++){
+ 
+        for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(copy_gd.bitboards[j] & (1ULL << en_passant_target)){
                 DEL_BIT(copy_gd.bitboards[j],en_passant_target); // delete enemy piece
                 break;
@@ -768,14 +1147,47 @@ bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,
         PUT_BIT(copy_gd.bitboards[piece],target); // put square
         PUT_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
         PUT_BIT(copy_gd.occupancy[2],target); // put in total occupancy
+    
+    }else if(castling){
+        //1-remove the king , 2-remove the rook , 3- remove king bitboard 4- remove rook bitboard 5- remove occupancy 6-remove total occupancy 
+        //7- add all the previous steps
+
+       int rook_sqr;  int rook_i; int rook_target;
+
+       if (target == g1){// white kingside
+           rook_sqr = copy_gd.wr1; rook_i = 2; rook_target = f1;    
+       }else if (target == c1){
+            rook_sqr = copy_gd.wr2; rook_i = 2; rook_target = d1; 
+       }else if (target == g8){
+            rook_sqr = copy_gd.br1; rook_i = 8; rook_target = f8; 
+       }else if (target == c8){
+            rook_sqr = copy_gd.br2; rook_i = 8; rook_target = d8; 
+       }
+        DEL_BIT(copy_gd.bitboards[piece],sqr); // delete sqr
+        DEL_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
+        DEL_BIT(copy_gd.occupancy[2],sqr); // delete total occupancy
+
+        PUT_BIT(copy_gd.bitboards[piece],target); // put square
+        PUT_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
+        PUT_BIT(copy_gd.occupancy[2],target); // put in total occupancy
+        
+        ////////
+
+        DEL_BIT(copy_gd.bitboards[rook_i],rook_sqr); // delete sqr
+        DEL_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],rook_sqr); // delete occupancy
+        DEL_BIT(copy_gd.occupancy[2],rook_sqr); // delete total occupancy
+
+        PUT_BIT(copy_gd.bitboards[rook_i],rook_target); // put square
+        PUT_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],rook_target); // put in occupancy
+        PUT_BIT(copy_gd.occupancy[2],rook_target); // put in total occupancy
 
     }else{// capture
      
         DEL_BIT(copy_gd.bitboards[piece],sqr); // delete sqr
         DEL_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],sqr); // delete occupancy
         DEL_BIT(copy_gd.occupancy[2],sqr); // delete total occupancy
-        int j;
-        for(j=(piece<6? 6: 0); j<(piece<6 ? 6 : 12); j++){
+
+        for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(copy_gd.bitboards[j] & (1ULL << target)){
                 DEL_BIT(copy_gd.bitboards[j],target); // delete enemy piece and occupancy but not the total occupancy
                 break;
@@ -787,6 +1199,45 @@ bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,
         PUT_BIT(copy_gd.occupancy[piece<6 ? 0 : 1],target); // put in occupancy
     }
     
-    return is_square_attacked(copy_gd, get_first_square(copy_gd.bitboards[piece<6 ? 0 : 6]), (piece <6 ? 1 : 0));
+    return IS_SQUARE_ATTACKED(copy_gd, get_first_square(copy_gd.bitboards[piece<6 ? 0 : 6]), (piece <6 ? 1 : 0));
 
 }
+
+
+
+inline bool is_square_attacked(game_data& gd, int sqr, int attacker_side){ // 0 - white attacker_side / 1 - black attacker side
+    
+    if(!attacker_side){ // white is attacker
+       
+        if(raw_attacks[0][sqr] & gd.bitboards[0]){return true;} // king
+  
+        if(raw_attacks[6][sqr] & gd.bitboards[5]){ return true;} //pawn
+        
+        if(raw_attacks[4][sqr] & gd.bitboards[4]){ return true;} // knight
+
+        if (get_sliding_attacks(0,sqr,gd.occupancy[2])& gd.bitboards[3] ){ return true;}
+        if (get_sliding_attacks(1,sqr,gd.occupancy[2])& gd.bitboards[2] ){ return true;}
+        if (get_queen_attacks(sqr, gd.occupancy[2])& gd.bitboards[1] ){ return true;}
+        
+
+    }else{
+        
+        if(raw_attacks[0][sqr] & gd.bitboards[6]){return true;} // king
+
+        if(raw_attacks[5][sqr] & gd.bitboards[11]){return true;}
+
+        if(raw_attacks[4][sqr] & gd.bitboards[10]){ return true;}
+
+        if (get_sliding_attacks(0,sqr,gd.occupancy[2]) & gd.bitboards[9]){ return true;}
+        if (get_sliding_attacks(1,sqr,gd.occupancy[2]) & ( gd.bitboards[8])){ return true;}
+        if (get_queen_attacks(sqr, gd.occupancy[2]) & gd.bitboards[7]){ return true;}
+
+    }
+
+    return false;
+    
+}
+
+
+
+

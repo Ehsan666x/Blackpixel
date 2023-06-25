@@ -35,15 +35,18 @@ void print_bitboard(uint64_t bitboard){
 }
 
 void print_chessboard(game_data gd){
-    char board[64];
-    memset(board, '*', sizeof(board));
+    std::string board[64];
+    //memset(board, ".", sizeof(board));
+    for (int i = 0; i < 64; i++) {
+        board[i] = ".";
+    }
     for(int i=0;i<12;i++){
         if(gd.bitboards[i]){
             for(int r=0;r<8;r++){
                 for(int f=0;f<8;f++){
                     int sq = (8 * r) + f;
                     if(gd.bitboards[i] & (1ULL << sq)){
-                        board[sq]=str_pieces[i];
+                        board[sq]=utf8_pieces[i];
                     }
                 }
             }

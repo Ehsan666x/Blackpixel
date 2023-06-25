@@ -1,9 +1,11 @@
-#include <iostream>
-#include "../include/globals.h"
-#include "../include/bitboards.h"
-#include "../include/attacks.h"
-#include "../include/magics.h"
-#include "../include/prints.h"
+//#include <iostream>
+//#include "../include/globals.h"
+#include "../include/bitboards.h" //game.h
+// #include "../include/attacks.h" //<iostream>  /<unordered_map> 
+#include "../include/magics.h" 
+#include "../include/prints.h" // iostream string globals
+#include "../include/pins.h" // iostream unordered_map
+
 
 uint64_t standard_bits[12]={
     8ULL,
@@ -21,11 +23,16 @@ uint64_t standard_bits[12]={
 };
 
 int main(){
-
+    std::cout << "\u2654" << std::endl; 
     init_raw_attacks();
     init_magic_tables();
     init_sliding_attacks_tables();
+    init_direction_attacks_tables();
     
+    // for(int sqr=32; sqr<63; sqr+=8){
+    //     print_bitboard(direction_attack_tables[DIAG_RB][32][576460752303423488]);
+    // }
+
     game_data gd;
     // uint64_t attack_mask = raw_attacks[2][7];
     // print_bitboard(attack_mask);
@@ -38,19 +45,27 @@ int main(){
 
  
 
-    int depth;
+    int depth=1;
     std::string input;
     // for(int i=0;i<12;i++){
     //     print_bitboard(standard_bits[i]);
     // }
-    log("Enter your fen");
-    //std::cin >> input;
-    std::getline(std::cin, input);
-    log("Enter Depth");
-    std::cin >> depth;
-    auto out = inout(input, depth);
-    const std::string message = "Best move :" + out.bm + " " + "Evaluation :" + std::to_string(out.e);
-    log(message);
+    while (depth){
+        /* code */
+        log("Enter your fen");
+        std::getline(std::cin, input);
+        log("Enter Depth");
+        std::cin >> depth;
+        std::cin.ignore();
+        auto out = inout(input, depth);
+    }
+    
+
+
+
+    //const std::string message = "Best move :" + out.bm + " " + "Evaluation :" + std::to_string(out.e);
+    //log(message);
+
 
     //log((const int)depth);
     return 0;

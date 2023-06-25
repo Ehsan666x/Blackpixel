@@ -6,14 +6,14 @@
 
 
 
+//   full_Square = 0ULL;
+//     empty_a = 0ULL;
+//     empty_h = 0ULL;
+//     empty_gh = 0ULL;
+//     empty_ab = 0ULL;
 
 void init_raw_attacks(){
 
-    // full_Square = 0ULL;
-    // empty_a = 0ULL;
-    // empty_h = 0ULL;
-    // empty_gh = 0ULL;
-    // empty_ab = 0ULL;
     for(int i=0;i<64;i++){
         PUT_BIT(full_Square,i);
     }
