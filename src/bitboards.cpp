@@ -1,42 +1,42 @@
 #include <iostream>
 #include <unordered_map>
 #include "../include/bitboards.h"
+#include "../include/prints.h"
 
 
 
 
 
-
-inline int get_first_square(uint64_t bitboard) {
-    int count = 0;
-    while (bitboard > 0) {
-        if (bitboard & 1) {  // Check if the least significant bit is set
-            break;
-        }
-        bitboard >>= 1;  // Right shift the number by 1 bit
-        count++;
-    }
+// int get_first_square(uint64_t bitboard) {
+//     int count = 0;
+//     while (bitboard > 0) {
+//         if (bitboard & 1) {  // Check if the least significant bit is set
+//             break;
+//         }
+//         bitboard >>= 1;  // Right shift the number by 1 bit
+//         count++;
+//     }
     
-    return count;
-}
+//     return count;
+// }
 
-int count_bits(uint64_t bitboard){
-    // bit counter
-    int count = 0;
+// int count_bits(uint64_t bitboard){
+//     // bit counter
+//     int count = 0;
     
-    // consecutively reset least significant 1st bit
-    while (bitboard)
-    {
-        // increment count
-        count++;
+//     // consecutively reset least significant 1st bit
+//     while (bitboard)
+//     {
+//         // increment count
+//         count++;
         
-        // reset least significant 1st bit
-        bitboard &= bitboard - 1;
-    }
+//         // reset least significant 1st bit
+//         bitboard &= bitboard - 1;
+//     }
     
-    // return bit count
-    return count;
-}
+//     // return bit count
+//     return count;
+// }
 
 uint64_t generate_occupancy(int decimal_pattern, int attack_bits_number, uint64_t attack_mask){
     // occupancy map - discovering the occupany pattern in binary
@@ -82,8 +82,13 @@ inline void innerfen(game_data& gd){
     // DEL_BIT(rookbitboard,r1);
     // int r2 = get_first_square(rookbitboard); // cant be more than two rooks and 1 king for each sides in initial position
     // int k = get_first_square(kingbitboard);
-    // gd.r1 = r1;
-    // gd.r2 = r2;
+    gd.wr1 = INVALID;
+    gd.wr2 = INVALID;
+    gd.br1 = INVALID;
+    gd.br2 = INVALID;
+    gd.wk  = INVALID;
+    gd.bk  = INVALID;
+
     // gd.k = k;
     gd.wk = get_first_square(gd.bitboards[0]);
 
@@ -131,6 +136,31 @@ inline void innerfen(game_data& gd){
             }
         }
     }
+    if(gd.wr1 != INVALID){
+        gd.castling_rights[gd.wr1] = 14; //13 // 11 // 7
+    }
+
+    if(gd.wr2 != INVALID){
+        gd.castling_rights[gd.wr2] = 13; //13 // 11 // 7
+    }
+
+    if(gd.br1 != INVALID){
+        gd.castling_rights[gd.br1] = 11; //13 // 11 // 7
+    }
+
+    if(gd.br2 != INVALID){
+        gd.castling_rights[gd.br2] = 7; //13 // 11 // 7
+    }
+
+    if(gd.wk != INVALID){
+        gd.castling_rights[gd.wk] = 12; //13 // 11 // 7
+    }
+    
+    if(gd.bk != INVALID){
+        gd.castling_rights[gd.bk] = 3; //13 // 11 // 7
+    }
+    gd.wking_sqr = gd.wk;
+    gd.bking_sqr = gd.bk;
 };
 
 game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 /  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1  0=halfmvoe
@@ -215,7 +245,8 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
             int index= str_pieces.find(*fen);
             
             if(index != std::string::npos) {
-
+                gd.piece_numbers[index]++;
+                gd.mailbox[sq] = (uint8_t)index;
                 gd.bitboards[index] |= (1ULL << sq);
                 gd.occupancy[2] |= (1ULL << sq);
 
@@ -232,6 +263,5 @@ game_data parse_fen(const char* fen){ // 4k2r/6r1/8/8/8/8/3R4/R3K3 w kQ - 0 1 / 
         fen++;
     }
     innerfen(gd);
-    
     return gd;
 }

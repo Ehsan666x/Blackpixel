@@ -1,12 +1,14 @@
 
 #include <iostream>
 #include <sstream>
+#include <chrono>
 #include "../include/globals.h" // <string>
 #include "../include/attacks.h" //iostream unordered_map
 //#include "../include/game.h" // string moves.h
 #include "../include/perft.h" // game
 //#include "../include/moves.h"
 #include "../include/prints.h" // string iostream globals
+#include "../include/evaluation.h"
 
 
 // #define empty_board "8/8/8/8/8/8/8/8 b - - "
@@ -34,9 +36,9 @@ Out inout(std::string& input, int& depth){
     // }
     print_chessboard(game.get_gd());
     
-    //print_bitboard(gd.occupancy[0]);
-    //print_bitboard(gd.occupancy[1]);
-    //print_bitboard(gd.occupancy[2]);
+    // print_bitboard(gd.occupancy[0]);
+    // print_bitboard(gd.occupancy[1]);
+    // print_bitboard(gd.occupancy[2]);
     //uint64_t m =sliding_attacks_manually(1, 57, gd.occupancy[2]);
     //uint64_t r = get_queen_attacks(c3, gd.occupancy[2]);
     //print_bitboard(m);
@@ -81,15 +83,36 @@ Out inout(std::string& input, int& depth){
             std::cout << "Moving: " << argument << std::endl;
             game.move(argument);
             print_chessboard(game.get_gd());
+        } else if (command == "perft1") {
+            // Handle perft command
+            print_chessboard(game.get_gd());
+            std::cout << "Perft depth: " << argument << std::endl;
+            game_data copy_gd = game_data(game.get_gd());
+            int depth = std::stoi(argument);
+
+                // Start the timer
+            auto start = std::chrono::high_resolution_clock::now();
+            uint64_t nodes = perft_bit(depth, copy_gd, true);
+                // Stop the timer
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout<<nodes<< " in " << milliseconds << " milliseconds" << std::endl;
         } else if (command == "perft") {
             // Handle perft command
             print_chessboard(game.get_gd());
             std::cout << "Perft depth: " << argument << std::endl;
             game_data copy_gd = game_data(game.get_gd());
             int depth = std::stoi(argument);
+
+                // Start the timer
+            auto start = std::chrono::high_resolution_clock::now();
             uint64_t nodes = perft(depth, copy_gd, true);
-            std::cout<<nodes<<std::endl;
-            
+                // Stop the timer
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout<<nodes<< " in " << milliseconds << " milliseconds" << std::endl;
         } else if (command == "fen") {
             // Handle fen command
             std::cout << "FEN: " << argument << std::endl;
@@ -110,6 +133,49 @@ Out inout(std::string& input, int& depth){
             Game blueprint(old_game.get_fen(),1);
             game = blueprint;
             print_chessboard(game.get_gd());
+        }else if( command == "go1"){
+
+            Best_line bl(0 , 0 , 0);
+            int piece_values[6];
+            int position_values[6][64];
+            set_piece_values(piece_values , bl._greediness , bl._aggression, bl._naivity);
+            set_position_values(position_values , bl._greediness , bl._aggression, bl._naivity);
+            game_data current_gd = game.get_gd();
+            
+            auto start = std::chrono::high_resolution_clock::now();
+            int eval = alpha_beta(std::stoi(argument), current_gd, bl , -1000000 , 1000000 , piece_values , position_values);
+            bl._last = bl.best_line_list + bl._size;
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();           
+
+            for( int i=std::stoi(argument) ; i>0; i-- ){
+                log(piece_names[GET_PIECE(bl.best_line_list[i])]+" "+notations[GET_SOURCE_SQUARE(bl.best_line_list[i])] + " to "+ notations[GET_TARGET_SQUARE(bl.best_line_list[i])] );
+            }
+            log(eval);
+            log(" in " + std::to_string(milliseconds) + "milliseconds");
+
+        }else if( command == "go"){
+
+            Best_line bl(0 , 0 , 0);
+            int piece_values[6];
+            int position_values[6][64];
+            set_piece_values(piece_values , bl._greediness , bl._aggression, bl._naivity);
+            set_position_values(position_values , bl._greediness , bl._aggression, bl._naivity);
+            game_data current_gd = game.get_gd();
+            
+            uint8_t last_move[8] = {0,0,0,0,0,0,0,0};
+            auto start = std::chrono::high_resolution_clock::now();
+            int eval = search(std::stoi(argument), current_gd, bl , -1000000 , 1000000 , piece_values , position_values, last_move, true);
+            //bl._last = bl.best_line_list + bl._size;
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();           
+
+            
+            log(piece_names[bl.best_move[2]]+" "+notations[bl.best_move[0]] + " to "+ notations[bl.best_move[1]] );
+            
+            log(eval);
+            log(" in " + std::to_string(milliseconds) + "milliseconds");
+
         }else if(command == "exit" || command =="q" || command =="quit"){
             loop = false;
         } else {

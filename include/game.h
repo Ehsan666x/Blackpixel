@@ -24,6 +24,11 @@ struct game_data{
     int br1;
     int br2;
     int bk;
+    uint8_t mailbox[64];
+    uint8_t wking_sqr;
+    uint8_t bking_sqr;
+    int castling_rights[64];
+    int piece_numbers [6] = {0,0,0,0,0,0}; //king queens rooks bishops knights pawns
     MoveList piece_moves;
 
     game_data();
@@ -41,6 +46,7 @@ public:
     std::string get_fen();
     game_data get_gd();
     MoveList possible_moves();
+    ArrayMoveList generate_arraymoves();
 
 private:
    int _depth;

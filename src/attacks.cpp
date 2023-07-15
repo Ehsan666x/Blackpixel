@@ -194,3 +194,15 @@ uint64_t get_queen_attacks(int sqr, uint64_t occupancy){
     return queen_attacks;
 };
 
+// #define get_sliding_attacks(p, sqr, occupancy) \
+//     occupancy &= raw_attacks[(p==3 || p==0) ? 3 : 2][sqr]; \
+//     return sliding_attack_tables[(p==3 || p==0) ? 0 : 1][sqr][occupancy]
+
+// #define get_queen_attacks(sqr, occupancy) \
+//     uint64_t queen_attacks = 0ULL; \
+//     uint64_t queen_occupancy = occupancy; \
+//     occupancy &= raw_attacks[3][sqr]; \
+//     queen_attacks |= sliding_attack_tables[0][sqr][occupancy]; \
+//     queen_occupancy &= raw_attacks[2][sqr]; \
+//     queen_attacks |= sliding_attack_tables[1][sqr][queen_occupancy]; \
+//     return queen_attacks

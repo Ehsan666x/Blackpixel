@@ -5,7 +5,7 @@
 #include "../include/magics.h" 
 #include "../include/prints.h" // iostream string globals
 #include "../include/pins.h" // iostream unordered_map
-
+#include "../include/evaluation.h"
 
 uint64_t standard_bits[12]={
     8ULL,
@@ -28,6 +28,7 @@ int main(){
     init_magic_tables();
     init_sliding_attacks_tables();
     init_direction_attacks_tables();
+    init_zobrist();
     
     // for(int sqr=32; sqr<63; sqr+=8){
     //     print_bitboard(direction_attack_tables[DIAG_RB][32][576460752303423488]);
@@ -54,9 +55,9 @@ int main(){
         /* code */
         log("Enter your fen");
         std::getline(std::cin, input);
-        log("Enter Depth");
-        std::cin >> depth;
-        std::cin.ignore();
+        // log("Enter Depth");
+        // std::cin >> depth;
+        //std::cin.ignore();
         auto out = inout(input, depth);
     }
     

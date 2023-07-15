@@ -56,6 +56,16 @@ struct game_data;
     (enpassant << 22) | \
     (castling << 23) 
 
+#define ASSIGN_MOVE(move_list, index, sqr, target, piece, promoted, capture, double_push, enpassant, castling) \
+    move_list[(index)][0] = (sqr); \
+    move_list[(index)][1] = (target); \
+    move_list[(index)][2] = (piece); \
+    move_list[(index)][3] = (promoted); \
+    move_list[(index)][4] = (capture); \
+    move_list[(index)][5] = (double_push); \
+    move_list[(index)][6] = (enpassant); \
+    move_list[(index)][7] = (castling)
+
 
 
 #define GET_SOURCE_SQUARE(move) ((move) & 0x3F)
@@ -69,16 +79,28 @@ struct game_data;
 
 
 
+struct Size_array {
+    int first = 0;
+    int second = 0;
+};
+
+
+//inline bool potential_table[64][6][64];
+
+constexpr int MAX_MOVES = 256;
 
 // //inline std::unordered_map<int, std::array<uint32_t, 100>> piece_moves;
 
 // /uint64_t sqr_legal_moves(int& sqr,game_data& gd);
 int generate_moves(game_data& gd, uint32_t* move_list); // called by Movelist struct
+Size_array generate_arraymoves(game_data& gd, uint8_t (&first_move_list)[MAX_MOVES][8], uint8_t (&second_move_list)[MAX_MOVES][8]);
 int legal_moves(game_data& gd, uint32_t* moves);
 void get_checks(int sqr, game_data& gd, uint64_t* arr);
+inline bool check_potential(game_data& gd , int sqr, int target, int piece );
 inline bool move_and_check(game_data& orig_gd,int sqr,int target,int piece,int capture,int enpassant, int castling=0);
-inline bool is_square_attacked(game_data& gd, int sqr, int attacker_side);
+bool is_square_attacked(game_data& gd, int sqr, int attacker_side);
 void make_move(game_data& gd , uint32_t move);
+void make_arraymove(game_data& gd , uint8_t (&move)[8]);
 // // struct Move {
 // //     public:
 // //         //Move(uint32_t value):_value(value){};
@@ -98,7 +120,6 @@ void make_move(game_data& gd , uint32_t move);
 // //         uint32_t _value;
 // // };
 
-constexpr int MAX_MOVES = 256;
 
 struct MoveList {
     void generate(game_data& gd);
@@ -117,21 +138,26 @@ struct MoveList {
     int _size;
 };
 
-struct SqrList{
-    const uint32_t* begin() const;
-    const uint32_t* end() const;
-    size_t size() const ;
-    bool contains(uint32_t move) const;
+struct ArrayMoveList {
+    ArrayMoveList();
+    void generate(game_data& gd);
 
-    uint32_t& operator[](size_t index) {
-        return square_list[index];
-    }
+    //const uint8_t* begin() const;
+    //const uint8_t* end() const;
+    //size_t first_size() const ;
+    //size_t second_size() const ;
+    //bool contains(uint8_t (&move)[8]) const;
+
+    // uint8_t* operator[](size_t index) {
+    //     return move_list[index];
+    // }
     
-    uint32_t square_list[MAX_MOVES];
-    uint32_t* _last;
-    int _size;
+    uint8_t first_move_list[MAX_MOVES][8]; // captures promotions
+    uint8_t second_move_list[MAX_MOVES][8];
+    //uint8_t* _last;
+    int _first_size = 0;
+    int _second_size = 0;
 };
-
 
 
 /*

@@ -41,8 +41,20 @@ void Game::move(const std::string& move){
     MoveList ml = this->possible_moves();
     for( uint32_t m : ml){
         if( (GET_SOURCE_SQUARE(m) == sqr) && (GET_TARGET_SQUARE(m) == target)){
-            make_move(_gd,m);
-            break;
+            if(move.length() > 4){
+                if(GET_PROMOTED_PIECE(m)){
+                    if(promotion_pieces.find(move[4])!=std::string::npos && GET_PROMOTED_PIECE(m) == promotion_pieces.find(move[4])){ // promotion
+                        make_move(_gd,m);
+                        break;
+                    }
+                }else if(move[4] == '*' && IS_CASTLING(m)){ // * castle?
+                    make_move(_gd,m);
+                    break;
+                } 
+            }else if(!IS_CASTLING(m)){ 
+                make_move(_gd,m);
+                break;
+            }
         }
     }
 }
@@ -52,6 +64,11 @@ MoveList Game::possible_moves(){
     ml.generate(_gd);
     return ml;
 };
+ArrayMoveList Game::generate_arraymoves(){
+    ArrayMoveList ml;
+    ml.generate(_gd);
+    return ml;
+}
 
 std::string Game::get_fen(){
     return _fen;
@@ -61,7 +78,13 @@ game_data Game::get_gd(){
 }
 
 
-game_data::game_data() = default;
+//game_data::game_data() = default;
+game_data::game_data() {
+    for (int i = 0; i < 64; i++) {
+        mailbox[i] = INVALID ;
+        castling_rights[i] = 15;
+    }
+}
 
 game_data::game_data(const game_data& other) {
     fen = other.fen;
@@ -79,5 +102,14 @@ game_data::game_data(const game_data& other) {
     br2 = other.br2;
     bk = other.bk;
     piece_moves = other.piece_moves;
+
+    wking_sqr = other.wking_sqr;
+    bking_sqr = other.bking_sqr;
+    for (int i = 0; i < 64; i++) {
+        mailbox[i] = other.mailbox[i];
+    }
+    for(int i=0;i<64;i++){
+        castling_rights[i] = other.castling_rights[i];
+    }
 }
 
