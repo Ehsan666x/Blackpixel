@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include "globals.h"
+#include "game.h"
 
 
 //rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
@@ -47,9 +48,11 @@ inline std::string piece_names[12] = {
 Out inout(std::string& input, int& depth); // this function is declared in Entry.cpp
 std::string calculate_new_fen(std::string& fen, const std::string& move);
 
-template <typename T>
-void log(const T& message) {
-        std::cout << message << std::endl;
+namespace Myprintlog{
+    template <typename T>
+    void log(const T& message) {
+            std::cout << message << std::endl;
+    }
 }
 
 

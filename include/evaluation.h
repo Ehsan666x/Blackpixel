@@ -1,21 +1,33 @@
 
 #pragma once
 #include <iostream>
+#include <fstream>
+#include <cstring>
 #include "game.h"
+#include "openings.h"
 #include "globals.h"
 #include "bitboards.h"
 #include "prints.h"
 
-struct Entry{
-    uint16_t eval;//evaluation
-    uint32_t best_move;//best move
-    uint16_t alpha;//alpha 
-    uint16_t beta;// beta
-};
 
-inline std::unordered_map<uint64_t, Entry> zobrist_positions;
+#define COMPARE_MOVES(ml, depth, move1, move2) \
+    ({ \
+        bool result = false; \
+        for (int i = 0; i < 2; i++) { \
+            if ((move1)[0] == (ml).killer_moves[depth][i][0] && (move1)[1] == (ml).killer_moves[depth][i][1] && (move1)[2] == (ml).killer_moves[depth][i][2]) { \
+                result = true; \
+                break; \
+            } else if ((move1)[0] == (ml).history_moves[depth][i][0] && (move1)[1] == (ml).history_moves[depth][i][1] && (move1)[2] == (ml).history_moves[depth][i][2]) { \
+                result = true; \
+                break; \
+            } \
+        } \
+        result; \
+    })
 
-inline uint64_t zobristTable[12][64];
+//inline bool COMPARE_MOVES( ArrayMoveList ml,int depth,uint8_t (& move1)[8], uint8_t (& move2)[8]);
+
+
 inline int pawn_endgame_position_values[64];
 
 const inline int mirror_score[64] =
@@ -31,7 +43,6 @@ const inline int mirror_score[64] =
 };
 
 
-constexpr int MAX_DEPTH = 100;
 
 struct Best_line{
     //void search(game_data& gd);
@@ -46,7 +57,7 @@ struct Best_line{
     }
     
     uint32_t best_line_list[MAX_DEPTH];
-    uint8_t* best_move;
+    uint8_t best_move[8];
     uint32_t* _last;
     int _size =0;
     int _depth;
@@ -73,4 +84,6 @@ void set_piece_values(int* piece_values , int greediness ,int aggression, int na
 
 void set_position_values(int (&position_values)[6][64] , int greediness, int aggression, int naivity);
 
-void init_zobrist();
+
+
+inline void sort_moves(ArrayMoveList& ml, int depth);

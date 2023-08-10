@@ -9,6 +9,7 @@
 // #include "prints.h"
 struct game_data;
 
+constexpr uint8_t MAX_DEPTH = 10;
 
 // /*
 //           binary move bits                               hexidecimal constants
@@ -157,6 +158,11 @@ struct ArrayMoveList {
     //uint8_t* _last;
     int _first_size = 0;
     int _second_size = 0;
+
+    uint8_t history_moves[MAX_DEPTH][3][3]; // [depth][history number][sqr ,target , piece]
+    uint8_t killer_moves[MAX_DEPTH][3][3]; // [depth][killernumber][sqr ,target , piece]
+    uint8_t history_index[MAX_DEPTH] = {0};
+    uint8_t killer_index[MAX_DEPTH] = {0};
 };
 
 

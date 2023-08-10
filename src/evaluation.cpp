@@ -1,46 +1,12 @@
-#include <random>
+
 #include "../include/evaluation.h"
 #include "../include/moves.h"
 #include "../include/bitboards.h"
-#include <cstring>
 
 
 
 
 
-void init_zobrist(){
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::bernoulli_distribution dist(0.5);
-
-    for (int piece = 0; piece < 12; ++piece) {
-        for (int sqr = 0; sqr < 64; ++sqr) {
-            uint64_t rn = 0;
-            for(int i=0; i<64; i++){
-                if(dist(gen)){
-                    rn |= (1ULL << i);
-                }
-                
-            }
-            zobristTable[piece][sqr] = rn;  // Generate a random number for each piece-square combination
-            //log(rn);
-        }
-    }
-}
-
-uint64_t get_board_hash(game_data& gd){
-    uint64_t zobristHash = 0;
-
-    for (int sqr = 0; sqr < 64; sqr++) {
-        //int piece = getPieceAtSquare(square);  // Get the piece at the current square (e.g., 0 for an empty square)
-        //int side = getSideAtSquare(square);    // Get the side at the current square (e.g., 0 for white, 1 for black)
-
-        // if (piece != INVALID) {  // If there is a piece on the square
-        //     zobristHash ^= zobristTable[piece][square];
-        // }
-    }
-    return zobristHash;
-}
 
 
 // void Best_line::search(game_data& gd) {
@@ -180,6 +146,74 @@ void set_position_values(int (&position_values)[6][64] , int greediness, int agg
 //     return nodes;
 // };
 
+// inline bool COMPARE_MOVES( ArrayMoveList ml,int depth,uint8_t (& move1)[8], uint8_t (& move2)[8]) {
+    
+//     for(int i=0 ; i <2; i++){
+//         if(move1[0] == ml.killer_moves[depth][i][0] && move1[1] == ml.killer_moves[depth][i][1] && move1[2] == ml.killer_moves[depth][i][2]){
+//             return true;
+//         }else if(move1[0] == ml.history_moves[depth][i][0] && move1[1] == ml.history_moves[depth][i][1] && move1[2] == ml.history_moves[depth][i][2]){
+//             return true;
+//         }
+//     }
+//     return false;
+// }
+
+void sort_moves(ArrayMoveList& ml, int depth){
+    // std::sort(ml.first_move_list, ml.first_move_list + ml._first_size,
+
+    //     [&]( uint8_t (& move1)[8], uint8_t (& move2)[8]) {
+    //         for(int i=0 ; i <2; i++){
+    //             if(move1[0] == ml.killer_moves[depth][i][0] && move1[1] == ml.killer_moves[depth][i][1] && move1[2] == ml.killer_moves[depth][i][2]){
+    //                 return true;
+    //             }else if(move1[0] == ml.history_moves[depth][i][0] && move1[1] == ml.history_moves[depth][i][1] && move1[2] == ml.history_moves[depth][i][2]){
+    //                 return true;
+    //             }
+    //         }
+    //         return false;
+    //     }
+    // );
+
+    // std::sort(ml.second_move_list, ml.second_move_list + ml._second_size,
+
+    //     [&](  uint8_t (& move1)[8], uint8_t (& move2)[8]) {
+    //         for(int i=0 ; i <2; i++){
+    //             if(move1[0] == ml.killer_moves[depth][i][0] && move1[1] == ml.killer_moves[depth][i][1] && move1[2] == ml.killer_moves[depth][i][2]){
+    //                 return true;
+    //             }else if(move1[0] == ml.history_moves[depth][i][0] && move1[1] == ml.history_moves[depth][i][1] && move1[2] == ml.history_moves[depth][i][2]){
+    //                 return true;
+    //             }
+    //         }
+    //         return false;
+    //     }
+    // );
+    if(depth<=MAX_DEPTH ){
+        for (int i = 0; i < ml._first_size - 1; i++) {
+            for (int j = 0; j < ml._first_size - i - 1; j++) {
+                if (COMPARE_MOVES(ml, depth, ml.first_move_list[j], ml.first_move_list[j + 1])) {
+                    // Swap the moves
+                    uint8_t temp[8];
+                    std::memcpy(temp, ml.first_move_list[j], sizeof(uint8_t) * 8);
+                    std::memcpy(ml.first_move_list[j], ml.first_move_list[j + 1], sizeof(uint8_t) * 8);
+                    std::memcpy(ml.first_move_list[j + 1], temp, sizeof(uint8_t) * 8);
+                }
+            }
+        }
+        
+        for (int i = 0; i < ml._second_size - 1; i++) {
+            for (int j = 0; j < ml._second_size - i - 1; j++) {
+                if (COMPARE_MOVES(ml, depth, ml.second_move_list[j], ml.second_move_list[j + 1])) {
+                    // Swap the moves
+                    uint8_t temp[8];
+                    std::memcpy(temp, ml.second_move_list[j], sizeof(uint8_t) * 8);
+                    std::memcpy(ml.second_move_list[j], ml.second_move_list[j + 1], sizeof(uint8_t) * 8);
+                    std::memcpy(ml.second_move_list[j + 1], temp, sizeof(uint8_t) * 8);
+                }
+            }
+        }
+    }
+
+};
+
 int alpha_beta(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (&piece_values)[6], int (&position_values)[6][64]){
 
     MoveList move_list;
@@ -262,6 +296,91 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
 
     ArrayMoveList ml;
     ml.generate(gd);
+
+    if(main && gd.fullmove < 8){
+        uint64_t bhash = get_board_hash(gd);
+        auto pair = openings_table.find(bhash);
+        if (pair != openings_table.end()){
+            std::random_device rd;
+            std::mt19937 gen(rd());
+
+            // Define the range for the distribution (0 to 5 inclusive)
+            std::uniform_int_distribution<int> distribution(0, 5);
+
+            // Generate a random integer between 0 and 5
+            int randomNum = distribution(gen);
+            std::string strmove = pair->second.candidate_moves[randomNum];
+            if(strmove.length()>3){
+
+                int src_file = 7  - (strmove[0] - 'a');
+                int src_rank = (strmove[1] - '0') - 1;
+
+                int target_file = 7 - (strmove[2] - 'a');
+                int target_rank = (strmove[3] - '0') - 1;
+
+                int sqr = src_rank * 8 + src_file;
+                int target = target_rank * 8 + target_file;
+
+                bool valid =false;  
+                int piece = 0 , promoted = 0 ,capture = 0 ,double_push = 0 ,enpassant = 0 ,castling = 0;
+
+                for(int i=0 ; i< ml._first_size; i++){
+                    if(ml.first_move_list[i][0] == sqr && ml.first_move_list[i][1] == target){
+                            
+                        if(strmove.length() > 4){
+                            if(ml.first_move_list[i][3]){
+                                if(promotion_pieces.find(strmove[4])!=std::string::npos && ml.first_move_list[i][3] == promotion_pieces.find(strmove[4])){ // promotion
+                                    for(int j=0;j<7;j++){
+                                        bl.best_move[j] = ml.first_move_list[i][j];
+                                    }
+                                    return 0;
+                                }
+                            }else if(strmove[4] == '*' && ml.first_move_list[i][7]){ // * castle?
+                                for(int j=0;j<7;j++){
+                                    bl.best_move[j] = ml.first_move_list[i][j];
+                                }
+                                return 0;
+                            } 
+                        }else if(!ml.first_move_list[i][7]){ 
+                                for(int j=0;j<7;j++){
+                                    bl.best_move[j] = ml.first_move_list[i][j];
+                                }
+                                return 0;
+                        }
+                    }
+                }
+                
+                for(int i=0 ; i< ml._second_size; i++){
+                    if(ml.second_move_list[i][0] == sqr && ml.second_move_list[i][1] == target){
+                            
+                        if(strmove.length() > 4){
+                            if(ml.second_move_list[i][3]){
+                                if(promotion_pieces.find(strmove[4])!=std::string::npos && ml.second_move_list[i][3] == promotion_pieces.find(strmove[4])){ // promotion
+                                for(int j=0;j<7;j++){
+                                    bl.best_move[j] = ml.second_move_list[i][j];
+                                }
+                                    return 0;
+                                }
+                            }else if(strmove[4] == '*' && ml.second_move_list[i][7]){ // * castle?
+                                for(int j=0;j<7;j++){
+                                    bl.best_move[j] = ml.second_move_list[i][j];
+                                }
+                                return 0;
+                            } 
+                        }else if(!ml.second_move_list[i][7]){ 
+                            for(int j=0;j<7;j++){
+                                bl.best_move[j] = ml.second_move_list[i][j];
+                            }
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+        
+        
+    }
+
     if(!ml._first_size && !ml._second_size){
         //print_chessboard(gd);
         int sqr = !gd.side_to_move? gd.wking_sqr : gd.bking_sqr;
@@ -282,8 +401,10 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
         return evaluate(gd, bl._greediness, bl._aggression, bl._naivity , piece_values , position_values);
     }
 
+    sort_moves(ml, depth);
     game_data ori(gd);
      
+
     if(!gd.side_to_move){ // white to move
         int maxeval = -2000000;
         uint8_t* best_move = ml.first_move_list[0];
@@ -295,13 +416,26 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
             eval = search(depth -1 ,gd, bl , alpha, beta , piece_values , position_values , move);
             gd = game_data(ori);
             if(eval > maxeval){
+                if(maxeval>0 && (eval-maxeval)>100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 maxeval = eval;
             }
             alpha = std::max(alpha , eval);
 
             if(beta <= alpha){
-
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
         }
@@ -312,20 +446,36 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
             eval = search(depth -1 ,gd, bl , alpha, beta , piece_values , position_values , move);
             gd = game_data(ori);
             if(eval > maxeval){
+                if(maxeval>0 && (eval-maxeval)>100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 maxeval = eval;
             }
             alpha = std::max(alpha , eval);
 
             if(beta <= alpha){
-
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
 
         }
         //bl._size ++;
         if(main){
-            bl.best_move = best_move;
+            //bl.best_move = best_move;
+            for(int j=0;j<7;j++){
+                bl.best_move[j] = best_move[j];
+            }
         }
         return maxeval;
 
@@ -339,13 +489,26 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
             make_arraymove(gd, move);
             eval = search(depth -1 ,gd, bl , alpha, beta , piece_values , position_values, move);
             if(eval < mineval){
+                if(mineval<0 && (mineval-eval)<-100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 mineval = eval;
             }
             beta = std::min(beta , eval);
             gd = game_data(ori);
             if(beta <= alpha){
- 
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
 
@@ -356,20 +519,36 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
             make_arraymove(gd, move);
             eval = search(depth -1 ,gd, bl , alpha, beta , piece_values , position_values, move);
             if(eval < mineval){
+                if(mineval<0 && (mineval-eval)<-100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 mineval = eval;
             }
             beta = std::min(beta , eval);
             gd = game_data(ori);
             if(beta <= alpha){
- 
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
 
         }
 
         if(main){
-            bl.best_move = best_move;
+            //bl.best_move = best_move;
+            for(int j=0;j<7;j++){
+                bl.best_move[j] = best_move[j];
+            }
         }
         //bl._size ++;
         return mineval;
@@ -398,7 +577,7 @@ int quiescence(int depth,game_data& gd, Best_line& bl , int alpha, int beta , in
         return evaluate(gd, bl._greediness, bl._aggression, bl._naivity , piece_values , position_values );
     }
 
-
+    sort_moves(ml, depth);
     game_data ori(gd);
 
     int eval = 0;
@@ -429,13 +608,26 @@ int quiescence(int depth,game_data& gd, Best_line& bl , int alpha, int beta , in
             eval = quiescence(depth-1,gd, bl , alpha, beta , piece_values , position_values, move);
             gd = game_data(ori);
             if(eval > maxeval){
+                if(maxeval>0 && (eval-maxeval)>100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 maxeval = eval;
             }
             alpha = std::max(alpha , eval);
 
             if(beta <= alpha){
-
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
         }
@@ -452,13 +644,26 @@ int quiescence(int depth,game_data& gd, Best_line& bl , int alpha, int beta , in
             make_arraymove(gd, move);
             eval = quiescence(depth-1,gd, bl , alpha, beta , piece_values , position_values,move);
             if(eval < mineval){
+                if(mineval<0 && (mineval-eval)<-100){//history move
+                    if(ml.history_index[depth] < 3 && depth<=MAX_DEPTH){
+                        ml.history_moves[depth][ml.history_index[depth]][0] = move[0];
+                        ml.history_moves[depth][ml.history_index[depth]][1] = move[1];
+                        ml.history_moves[depth][ml.history_index[depth]][2] = move[2];
+                        ml.history_index[depth]++;
+                    }
+                }
                 best_move = move;
                 mineval = eval;
             }
             beta = std::min(beta , eval);
             gd = game_data(ori);
             if(beta <= alpha){
- 
+                if(ml.killer_index[depth] < 3 && depth<=MAX_DEPTH){
+                    ml.killer_moves[depth][ml.killer_index[depth]][0] = move[0];
+                    ml.killer_moves[depth][ml.killer_index[depth]][1] = move[1];
+                    ml.killer_moves[depth][ml.killer_index[depth]][2] = move[2];
+                    ml.killer_index[depth]++;
+                }
                 break;
             }
 

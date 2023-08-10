@@ -10,6 +10,7 @@
 #include "../include/prints.h" // string iostream globals
 #include "../include/evaluation.h"
 
+// /using namespace Myprintlog;
 
 // #define empty_board "8/8/8/8/8/8/8/8 b - - "
 // #define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
@@ -50,7 +51,7 @@ Out inout(std::string& input, int& depth){
     
     auto list = game.possible_moves();
     for(uint32_t p : list ){
-        log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
+        Myprintlog::log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
         + " is en_passant: "+std::to_string(IS_ENPASSANT(p))+" is double_push?: "+std::to_string(IS_DOUBLE_PUSH(p))
         +" is castling?: "+std::to_string(IS_CASTLING(p))
         );
@@ -64,7 +65,7 @@ Out inout(std::string& input, int& depth){
     std::string argument;
 
     while (loop) {
-        log("Enter your command: ");
+        Myprintlog::log("Enter your command: ");
         //std::getline(std::cin, userinput);
         std::getline(std::cin, userinput);
         //std::getline(iss, argument);
@@ -122,7 +123,7 @@ Out inout(std::string& input, int& depth){
         }else if (command == "list"){
             auto list = game.possible_moves();
             for(uint32_t p : list ){
-                log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
+                Myprintlog::log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
                 + " is en_passant: "+std::to_string(IS_ENPASSANT(p))+" is double_push?: "+std::to_string(IS_DOUBLE_PUSH(p))
                 +" is castling?: "+std::to_string(IS_CASTLING(p))
                 );
@@ -149,10 +150,10 @@ Out inout(std::string& input, int& depth){
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();           
 
             for( int i=std::stoi(argument) ; i>0; i-- ){
-                log(piece_names[GET_PIECE(bl.best_line_list[i])]+" "+notations[GET_SOURCE_SQUARE(bl.best_line_list[i])] + " to "+ notations[GET_TARGET_SQUARE(bl.best_line_list[i])] );
+                Myprintlog::log(piece_names[GET_PIECE(bl.best_line_list[i])]+" "+notations[GET_SOURCE_SQUARE(bl.best_line_list[i])] + " to "+ notations[GET_TARGET_SQUARE(bl.best_line_list[i])] );
             }
-            log(eval);
-            log(" in " + std::to_string(milliseconds) + "milliseconds");
+            Myprintlog::log(eval);
+            Myprintlog::log(" in " + std::to_string(milliseconds) + "milliseconds");
 
         }else if( command == "go"){
 
@@ -171,38 +172,38 @@ Out inout(std::string& input, int& depth){
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();           
 
             
-            log(piece_names[bl.best_move[2]]+" "+notations[bl.best_move[0]] + " to "+ notations[bl.best_move[1]] );
+            Myprintlog::log(piece_names[bl.best_move[2]]+" "+notations[bl.best_move[0]] + " to "+ notations[bl.best_move[1]] );
             
-            log(eval);
-            log(" in " + std::to_string(milliseconds) + "milliseconds");
+            Myprintlog::log(eval);
+            Myprintlog::log(" in " + std::to_string(milliseconds) + "milliseconds");
 
         }else if(command == "exit" || command =="q" || command =="quit"){
             loop = false;
         } else {
             // Invalid command
-            log("Invalid command");
+            Myprintlog::log("Invalid command");
         }
     }
 
 
 
-        // log("make a move");
+        // Myprintlog::log("make a move");
         // std::getline(std::cin, move);
         // game.move(move);
         
         // auto list = game.possible_moves();
         // for(uint32_t p : list ){
-        //     log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
+        //     Myprintlog::log(piece_names[GET_PIECE(p)]+" "+notations[GET_SOURCE_SQUARE(p)] + " to "+ notations[GET_TARGET_SQUARE(p)] + " is capture?: " + std::to_string(IS_CAPTURE(p))
         //     + " is en_passant: "+std::to_string(IS_ENPASSANT(p))+" is double_push?: "+std::to_string(IS_DOUBLE_PUSH(p))
         //     +" is castling?: "+std::to_string(IS_CASTLING(p))
         //     );
         // }
-        // log(list.size());
+        // Myprintlog::log(list.size());
         // print_chessboard(game.get_gd());
 
         //std::cin.ignore();
         //int prft = 3;
-        //log("Perft Level 2");
+        //Myprintlog::log("Perft Level 2");
         //std::getline(std::cin, prft);
         //std::cin.ignore();
         //std::cin >> prft;
@@ -223,11 +224,11 @@ Out inout(std::string& input, int& depth){
     //         //std::string message = "piece number: " + std::to_string(pair.first) + "sqr number: "+ std::to_string(move & ((1ULL<<6)-1));
     //         std::string message = "piece number: " + std::to_string(pair.first) + " sqr number: " + std::to_string(move & ((1ULL << 6) - 1));
 
-    //         log(message);
+    //         Myprintlog::log(message);
     //     }
     // }
 
-    //log(r);
+    //Myprintlog::log(r);
     //std::cout << gd.en_passant << gd.castles << gd.fullmove << gd.halfmove << std::endl;
 
     Out out;
@@ -260,6 +261,6 @@ Out inout(std::string& input, int& depth){
 //     const out = inout(input, depth);
 
 //     // Use the result as needed
-//     console.log(out);
+//     console.Myprintlog::log(out);
 // });
 

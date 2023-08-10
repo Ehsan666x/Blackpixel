@@ -63,6 +63,14 @@ ArrayMoveList ::ArrayMoveList(){
             second_move_list[i][j]=0;
         }
     }
+    for (int i=0 ; i< MAX_DEPTH; i++){
+        for(int j=0;j<2;j++){
+            for(int k=0;k<2;k++){
+                history_moves[i][j][k] = 0;
+                killer_moves[i][j][k] = 0;
+            }
+        }
+    }
 };
 
 void ArrayMoveList::generate(game_data& gd) {
@@ -1825,7 +1833,7 @@ void make_move(game_data& gd , uint32_t move){ // move list
         for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << en_passant_target)){
                 DEL_BIT(gd.bitboards[j],en_passant_target); // delete enemy piece
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }
@@ -1847,7 +1855,7 @@ void make_move(game_data& gd , uint32_t move){ // move list
         for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << target)){
                 DEL_BIT(gd.bitboards[j],target); // delete enemy piece and occupancy but not the total occupancy
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }
@@ -1931,7 +1939,7 @@ void make_move(game_data& gd , uint32_t move){ // move list
         for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << target)){
                 DEL_BIT(gd.bitboards[j],target); // delete enemy piece and occupancy but not the total occupancy
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }
@@ -2012,7 +2020,7 @@ void make_arraymove(game_data& gd , uint8_t (&move)[8]){ // move list
             if(gd.bitboards[j] & (1ULL << en_passant_target)){
                 DEL_BIT(gd.bitboards[j],en_passant_target); // delete enemy piece
                 gd.mailbox[en_passant_target] = INVALID;
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }
@@ -2035,7 +2043,7 @@ void make_arraymove(game_data& gd , uint8_t (&move)[8]){ // move list
         for(int j=(move[2]<6? 6: 0); j<(move[2]<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << move[1])){
                 DEL_BIT(gd.bitboards[j],move[1]); // delete enemy piece and occupancy but not the total occupancy
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }
@@ -2119,7 +2127,7 @@ void make_arraymove(game_data& gd , uint8_t (&move)[8]){ // move list
         for(int j=(move[2]<6? 6: 0); j<(move[2]<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << move[1])){
                 DEL_BIT(gd.bitboards[j],move[1]); // delete enemy piece and occupancy but not the total occupancy
-                j>5 ? gd.piece_numbers[j-6]++ : gd.piece_moves[j]++;
+                j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
         }

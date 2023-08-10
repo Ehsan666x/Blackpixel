@@ -31,7 +31,7 @@ uint64_t perft_bit(int depth, game_data& gd, bool main = true){
     MoveList move_list;
     move_list.generate(gd);
     uint64_t n_moves = move_list._size;
-    //log(n_moves);
+    //Myprintlog::log(n_moves);
     if(depth == 1){return n_moves;}
  
     game_data ori(gd);
@@ -39,7 +39,7 @@ uint64_t perft_bit(int depth, game_data& gd, bool main = true){
         make_move(gd, move);
         uint64_t inner_node = perft_bit(depth-1 ,gd, false);
         nodes += inner_node;
-        if(main){log(notations[GET_SOURCE_SQUARE(move)]+notations[GET_TARGET_SQUARE(move)] + " " + std::to_string(inner_node));inner_node=0;}
+        if(main){Myprintlog::log(notations[GET_SOURCE_SQUARE(move)]+notations[GET_TARGET_SQUARE(move)] + " " + std::to_string(inner_node));inner_node=0;}
         //nodes += perft(depth-1 , gd, false);
         gd = game_data(ori);
     }
@@ -53,7 +53,7 @@ uint64_t perft(int depth, game_data& gd, bool main = true){
     ArrayMoveList ml;
     ml.generate(gd);
     uint64_t n_moves = ml._first_size + ml._second_size;
-    //log(n_moves);
+    //Myprintlog::log(n_moves);
     if(depth == 1){return n_moves;}
  
     game_data ori(gd);
@@ -63,7 +63,7 @@ uint64_t perft(int depth, game_data& gd, bool main = true){
         make_arraymove(gd, move);
         uint64_t inner_node = perft(depth-1 ,gd, false);
         nodes += inner_node;
-        if(main){log(notations[move[0]]+notations[move[1]] + " " + std::to_string(inner_node));inner_node=0;}
+        if(main){Myprintlog::log(notations[move[0]]+notations[move[1]] + " " + std::to_string(inner_node));inner_node=0;}
         //nodes += perft(depth-1 , gd, false);
         gd = game_data(ori);
     }
@@ -73,7 +73,7 @@ uint64_t perft(int depth, game_data& gd, bool main = true){
         make_arraymove(gd, move);
         uint64_t inner_node = perft(depth-1 ,gd, false);
         nodes += inner_node;
-        if(main){log(notations[move[0]]+notations[move[1]] + " " + std::to_string(inner_node));inner_node=0;}
+        if(main){Myprintlog::log(notations[move[0]]+notations[move[1]] + " " + std::to_string(inner_node));inner_node=0;}
         //nodes += perft(depth-1 , gd, false);
         gd = game_data(ori);
     }

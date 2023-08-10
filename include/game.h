@@ -4,6 +4,9 @@
 #include "moves.h"
 
 
+
+inline std::string STANDARD_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 struct game_data{
     char* fen;
     uint64_t bitboards[12]={
@@ -30,6 +33,7 @@ struct game_data{
     int castling_rights[64];
     int piece_numbers [6] = {0,0,0,0,0,0}; //king queens rooks bishops knights pawns
     MoveList piece_moves;
+
 
     game_data();
         // Copy constructor

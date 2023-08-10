@@ -42,5 +42,8 @@ enum {
 };
 
 
+inline const char* zobristvalues;
+inline const char* openingmaps;
 
 
+void init_globals();
