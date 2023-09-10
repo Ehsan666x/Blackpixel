@@ -1,0 +1,16 @@
+emcc -fdiagnostics-color=always -g -std=c++23 -O3  \    
+-I/home/ehsan/projects/emscripten/emsdk/upstream/emscripten/cache/sysroot/include \    
+-I/home/ehsan/projects/Blackpixel/include \
+/home/ehsan/projects/Blackpixel/src/*.cpp  \   
+-o Blackpixel.html
+
+
+dev
+emcc -fdiagnostics-color=always -g -std=c++23 -O3 -I/home/ehsan/projects/emscripten/emsdk/upstream/emscripten/cache/sysroot/include -I/home/ehsan/projects/Blackpixel/include /home/ehsan/projects/Blackpixel/src/*.cpp -s TOTAL_MEMORY=137625600 -s INITIAL_MEMORY=72089600 -s STACK_SIZE=65536000 -s ALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1 -o Blackpixel.js 
+
+prod
+emcc -fdiagnostics-color=always -std=c++23 -O3 -I/home/ehsan/projects/emscripten/emsdk/upstream/emscripten/cache/sysroot/include -I/home/ehsan/projects/Blackpixel/include /home/ehsan/projects/Blackpixel/src/*.cpp -s TOTAL_MEMORY=137625600 -s INITIAL_MEMORY=72089600 -s STACK_SIZE=65536000 -s ALLOW_MEMORY_GROWTH=1 -o Blackpixel.js 
+
+
+
+emrun --no_browser Blackpixel.html

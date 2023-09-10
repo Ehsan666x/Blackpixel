@@ -14,4 +14,7 @@
 
 inline Game old_game(STANDARD_POSITION,4);
 inline Game game(STANDARD_POSITION,4);
-const char* Blackpixel_engine(const char* input, int depth , int greediness, int aggression,int naivity);
+
+int searchMove(int depth , int greediness, int aggression,int naivity , MoveList& ml, int i);
+const char* Blackpixel_engine(const char* input, int depth , int greediness, int aggression,int naivity, int numWorkers = 1,int workerid = 0);
+const char* costume_memory_allocation();

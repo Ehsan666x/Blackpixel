@@ -1,0 +1,9 @@
+.vscode
+//.gitignore
+build/main
+.git
+todo.txt
+magicnumbers.txt
+old_code.cpp
+engine.js
+engine.wasm
