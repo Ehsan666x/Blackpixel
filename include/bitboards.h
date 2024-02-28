@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include "game.h"
+#include "globals.h"
 
 inline std::string str_pieces ="KQRBNPkqrbnp";
 inline std::string str_white ="KQRBNP";

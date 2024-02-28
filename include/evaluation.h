@@ -42,6 +42,8 @@ const inline int mirror_score[64] =
     h1, g1, f1, e1, d1, c1, b1, a1, 
 };
 
+inline std::random_device rd;
+inline std::mt19937 gen(rd());
 
 
 struct Best_line{

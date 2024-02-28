@@ -39,9 +39,13 @@ int main(){
     //     std::cerr << "Errors!\n";
     //     //return;
     // }
-    init_zobrist("zobristvalues");
+    init_zobrist("zobristvalues.txt");
+    // if(!fileExists("openingmaps.txt")){
+    //     generateOpeningsFile("1openings.pgn", openings_table);
+    // };
+    //generateOpeningsFile("1openings.pgn", openings_table);
     //std::string openingmaps = "openingmaps.txt";
-    initOpeningsTableFromFile("openingmaps", openings_table);
+    initOpeningsTableFromFile("openingmaps2.txt", openings_table);
     // Game game(STANDARD_POSITION,1);
     // game_data gd = game.get_gd();
     // std::string pm [6] = {"1.Nc3", "2.Nf3", "3.a3", "4.d4", "5.f3", "6.h4"};
@@ -72,32 +76,39 @@ int main(){
     // }
 
     
-    const char* command = "fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
-    const char* result1 = Blackpixel_engine(command , 4 , 0 , 0 , 0);
-    const char* result2 = Blackpixel_engine("go 4" , 4 , 0 , 0 , 0);
-    Myprintlog::log(result2);
+    //const char* command = "fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
+    //const char* result1 = Blackpixel_engine(command , 4 , 0 , 0 , 0);
+    //const char* result2 = Blackpixel_engine("go 4" , 4 , 0 , 0 , 0);
+    //Myprintlog::log(result2);
+    //_free(result1);
+   // _free(result2);
+    
     //const std::string message = "Best move :" + out.bm + " " + "Evaluation :" + std::to_string(out.e);
     //Myprintlog::log(message);
 
-    // while (depth){
+#ifndef __EMSCRIPTEN__
 
-    //     Myprintlog::log("Enter your Blackpixel command");
-    //     std::getline(std::cin, input);
+    while (depth){
 
-    //     auto start = std::chrono::high_resolution_clock::now();
+        Myprintlog::log("Enter your Blackpixel command");
+        std::getline(std::cin, input);
 
-    //     //auto out = inout(input, depth);
-    //     if(input == "q" || input == "exit" || input == "quit"){
-    //         break;
-    //     }
-    //     const char* i = input.c_str();
-    //     const char* r = Blackpixel_engine(i , 4 , 0 , 0 , 0);
-    //     Myprintlog::log(r);
-    //     auto end = std::chrono::high_resolution_clock::now();
-    //     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    //     std::cout << " in " << milliseconds << " milliseconds" << std::endl;
+        auto start = std::chrono::high_resolution_clock::now();
 
-    // }
+        //auto out = inout(input, depth);
+        if(input == "q" || input == "exit" || input == "quit"){
+            break;
+        }
+        const char* i = input.c_str();
+        const char* r = Blackpixel_engine(i , 4 , 0 , 0 , 0);
+        Myprintlog::log(r);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << " in " << milliseconds << " milliseconds" << std::endl;
+        _free(r);
+    }
+    
+#endif
 
     //Myprintlog::log((const int)depth);
     return 0;

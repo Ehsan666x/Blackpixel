@@ -10,9 +10,8 @@ bool fileExists(std::string filename) {
     return exists;
 }
 
-void init_zobrist(std::string filename){ //zobristvalues.txt
-    //std::ifstream inputfile(filename);
-    if (!fileExists(filename)) {
+void create_zobrist_values(std::string filename){
+
         std::ofstream outputfile(filename);
         if (!outputfile.is_open()){
             //std::cerr << "Error init_zobrist file for reading!\n";
@@ -52,23 +51,34 @@ void init_zobrist(std::string filename){ //zobristvalues.txt
             }
         }
         outputfile.close();
+}
+
+void init_zobrist(std::string filename){ //zobristvalues.txt
+    //std::ifstream inputfile(filename);
+    std::istream* file;
+    if (!fileExists(filename)) {
+        file = new std::istringstream(zobristvalues);
 
     }else{ // file exist
-        std::ifstream file(filename);
-        std::string wholeline;
-        while (std::getline(file, wholeline)) { 
-            int piece;
-            int sqr;
-            uint64_t hash;
-            std::stringstream ss(wholeline);
-            ss >> piece;
-            ss >> sqr;
-            ss >> hash;
-            zobristTable[piece][sqr] = hash;
-            //Myprintlog::log(std::to_string(piece)+ " "+ std::to_string(sqr)+ " "+ std::to_string(hash));
-        }
-        file.close();
+        
+        file = new std::ifstream(filename);
+        //std::ifstream file(filename);
     }
+    
+    std::string wholeline;
+    while (std::getline(*file, wholeline)) { 
+        int piece;
+        int sqr;
+        uint64_t hash;
+        std::stringstream ss(wholeline);
+        ss >> piece;
+        ss >> sqr;
+        ss >> hash;
+        zobristTable[piece][sqr] = hash;
+        //Myprintlog::log(std::to_string(piece)+ " "+ std::to_string(sqr)+ " "+ std::to_string(hash));
+    }
+    
+    delete file;
 
     // if(!fileExists("openingmaps.txt")){
     //     generateOpeningsFile("openings.pgn", openings_table);
@@ -97,164 +107,327 @@ uint64_t get_board_hash(game_data& gd){
 
 
 
-// void generateOpeningsFile(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table){ //openings.pgn
-//     //reads pgn openings file, generates opening table in memory and saves it in a file
+void generateOpeningsFile0(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table){ //openings.pgn
+    //reads pgn openings file, generates opening table in memory and saves it in a file with the format bellow:
+    // "zobristHash -  candidate_size (2) - candidate_moves (e2e4 e2e3) - move_line (1.d3 Nf6) - eval - name
 
-//     std::ifstream file(filename);
-//     if (!file.is_open()) {
-//         std::cerr << "Error pgn file for reading!\n";
-//         return;
-//     }
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error pgn file for reading!\n";
+        return;
+    }
 
-//     std::vector <std::string> stringvec;
+    std::vector <std::string> stringvec;
     
-//     std::string pgngame = "";
-//     //std::string openingname = "";
-//     std::string line;
+    std::string pgngame = "";
+    //std::string openingname = "";
+    std::string line;
 
-//     while (std::getline(file,line)){// line = "1.e4 e5 2.Nf3"
-//         stringvec.push_back(line);
-//     }
+    while (std::getline(file,line)){// line = "1.e4 e5 2.Nf3"
+        stringvec.push_back(line);
+    }
 
-//     for(int i=0;i<stringvec.size(); i++) {
-//         //std::string wholeline = stringvec[i]; 
+    for(int i=0;i<stringvec.size(); i++) {
+        //std::string wholeline = stringvec[i]; 
 
-//         if(stringvec[i][0] == '{' || stringvec[i][stringvec[i].length()] == '}'){
-//             //pgngame = "";
-//             //continue;
-//         }else if(stringvec[i][0] == '[' || stringvec[i][stringvec[i].length()] == ']'){
+        if(stringvec[i][0] == '{' || stringvec[i][stringvec[i].length()] == '}'){
+            //pgngame = "";
+            //continue;
+        }else if(stringvec[i][0] == '[' || stringvec[i][stringvec[i].length()] == ']'){
             
-//             if(!stringvec[i].empty() && (stringvec[i].back() == '\n' || stringvec[i].back() == '\r')){
-//                 stringvec[i].pop_back();
-//             }
-//             //pgngame = "";
-//             //continue;
-//         }else if(stringvec[i][0] == '(' || stringvec[i][stringvec[i].length()] == ')'){
-//             //pgngame = "";
-//             //continue;
-//         }else{
-//             pgngame += stringvec[i] + " ";
-//             if(i < stringvec.size()-1){
-//                 continue;
-//             }
-//         }
-//         if(pgngame == "" || pgngame == " "){ 
-//             //openingname += stringvec[i];
-//             continue;
-//         }
+            if(!stringvec[i].empty() && (stringvec[i].back() == '\n' || stringvec[i].back() == '\r')){
+                stringvec[i].pop_back();
+            }
+            //pgngame = "";
+            //continue;
+        }else if(stringvec[i][0] == '(' || stringvec[i][stringvec[i].length()] == ')'){
+            //pgngame = "";
+            //continue;
+        }else{
+            pgngame += stringvec[i] + " ";
+            if(i < stringvec.size()-1){
+                continue;
+            }
+        }
+        if(pgngame == "" || pgngame == " "){ 
+            //openingname += stringvec[i];
+            continue;
+        }
 
-//         Game game(STANDARD_POSITION, 1);
-//         std::string pgn_move;
-//         // Read the Zobrist hash
-//         std::stringstream ss(pgngame);
-//         std::string move_line = "S";
-//         int count = 0;
-//         while ( ss >> pgn_move && count <15) {
-//             if(pgn_move[pgn_move.length()-1] == '.'){
-//                 std::string first = pgn_move;
-//                 ss >> pgn_move;
-//                 pgn_move = first + pgn_move;
-//             }else if(pgn_move[0] == '{' || pgn_move[pgn_move.length()] == '}'){
-//                 continue;
-//             }else if(pgn_move[0] == '[' || pgn_move[pgn_move.length()] == ']'){
-//                 continue;
-//             }else if(pgn_move[0] == '(' || pgn_move[pgn_move.length()] == ')'){
-//                 continue;
-//             }else if(pgn_move.length()<2){
-//                 std::string first = pgn_move;
-//                 ss >> pgn_move;
-//                 pgn_move = first + pgn_move;
-//             }
-//             game_data gd = game.get_gd();
-//             Myprintlog::log(pgn_move);
-//             std::string move = PGN_to_UCI(gd,pgn_move);
-//             Myprintlog::log(move);
-//             uint64_t zobrist_hash = get_board_hash(gd);
-//             auto pair = openings_table.find(zobrist_hash);
+        Game game(STANDARD_POSITION, 1);
+        std::string pgn_move;
+        // Read the Zobrist hash
+        std::stringstream ss(pgngame);
+        std::string move_line = "S";
+        int count = 0;
+        while ( ss >> pgn_move && count <15) {
+            if(pgn_move[pgn_move.length()-1] == '.'){
+                std::string first = pgn_move;
+                ss >> pgn_move;
+                pgn_move = first + pgn_move;
+            }else if(pgn_move[0] == '{' || pgn_move[pgn_move.length()] == '}'){
+                continue;
+            }else if(pgn_move[0] == '[' || pgn_move[pgn_move.length()] == ']'){
+                continue;
+            }else if(pgn_move[0] == '(' || pgn_move[pgn_move.length()] == ')'){
+                continue;
+            }else if(pgn_move.length()<2){
+                std::string first = pgn_move;
+                ss >> pgn_move;
+                pgn_move = first + pgn_move;
+            }
+            game_data gd = game.get_gd();
+            Myprintlog::log(pgn_move);
+            std::string move = PGN_to_UCI(gd,pgn_move);
+            Myprintlog::log(move);
+            uint64_t zobrist_hash = get_board_hash(gd);
+            auto pair = openings_table.find(zobrist_hash);
 
-//             game.move(move); // make the move
+            game.move(move); // make the move
 
-//             if (pair != openings_table.end()){
-//             // search in openings table if zobrist exist if move is not included in candidate moves add moves
+            if (pair != openings_table.end()){
+            // search in openings table if zobrist exist if move is not included in candidate moves add moves
 
-//                 if(pair->second.candidate_size < MAX_CANDIDATE){
-//                     bool found = false;
-//                     for(uint8_t i=0; i<pair->second.candidate_size; i++ ){
-//                         if(pair->second.candidate_moves[i] == move){
-//                             found = true;
-//                             break;
-//                         };
-//                     }
-//                     if(!found){
-//                         pair->second.candidate_moves[pair->second.candidate_size] = move;
-//                         pair->second.move_line = move_line; 
-//                         pair->second.candidate_size++;
-//                     }
-//                 }
-//             }else{
-//             //  if the zobrist doesnt exit create zobrist / push move to candidate moves
+                if(pair->second.candidate_size < MAX_CANDIDATE){
+                    bool found = false;
+                    for(uint8_t i=0; i<pair->second.candidate_size; i++ ){
+                        if(pair->second.candidate_moves[i] == move){
+                            found = true;
+                            break;
+                        };
+                    }
+                    if(!found){
+                        pair->second.candidate_moves[pair->second.candidate_size] = move;
+                        pair->second.move_line = move_line; 
+                        pair->second.candidate_size++;
+                    }
+                }
+            }else{
+            //  if the zobrist doesnt exit create zobrist / push move to candidate moves
 
                 
-//                 // Best_line bl(0 , 0 , 0);
-//                 // int piece_values[6];
-//                 // int position_values[6][64];
-//                 // set_piece_values(piece_values , bl._greediness , bl._aggression, bl._naivity);
-//                 // set_position_values(position_values , bl._greediness , bl._aggression, bl._naivity);
-//                 // game_data current_gd = game.get_gd();
+                // Best_line bl(0 , 0 , 0);
+                // int piece_values[6];
+                // int position_values[6][64];
+                // set_piece_values(piece_values , bl._greediness , bl._aggression, bl._naivity);
+                // set_position_values(position_values , bl._greediness , bl._aggression, bl._naivity);
+                // game_data current_gd = game.get_gd();
                 
-//                 // uint8_t last_move[8] = {0,0,0,0,0,0,0,0};
-//                 //int eval = search(6, current_gd, bl , -1000000 , 1000000 , piece_values , position_values, last_move, true);
+                // uint8_t last_move[8] = {0,0,0,0,0,0,0,0};
+                //int eval = search(6, current_gd, bl , -1000000 , 1000000 , piece_values , position_values, last_move, true);
                 
-//                 Variations var(move,move_line);
+                Variations var(move,move_line);
 
-//                 openings_table[zobrist_hash] = var;
-//             }
-//             if(move_line == "S"){move_line = "";}
-//             move_line += pgn_move + " ";
-//             count++;
-//         }
+                openings_table[zobrist_hash] = var;
+            }
+            if(move_line == "S"){move_line = "";}
+            move_line += pgn_move + " ";
+            count++;
+        }
 
-//         //openingname = stringvec[i];
-//         pgngame = "";
-//     }
+        //openingname = stringvec[i];
+        pgngame = "";
+    }
     
-//     file.close();
+    file.close();
 
-//     // now read the opening tables in the memory and save it in a file called opening_maps
+    // now read the opening tables in the memory and save it in a file called opening_maps
 
-//     std::ofstream opening_maps("openingmaps.txt");
-//     if (!opening_maps.is_open()) {
-//         std::cerr << "Error openingmaps file for reading!\n";
-//         return;
-//     }
+    std::ofstream opening_maps("openingmaps.txt");
+    if (!opening_maps.is_open()) {
+        std::cerr << "Error openingmaps file for reading!\n";
+        return;
+    }
 
-//     for (const auto& pair : openings_table) {
-//         const uint64_t hash = pair.first;
-//         const Variations& var = pair.second;
-//         uint8_t candidate_size = var.candidate_size; // 3
-//         const std::string* candidates = var.candidate_moves; 
-//         std::string move_line = var.move_line; // "e2e5 b8c6"
-//         int eval = var.eval; // 50
-//         std::string name = var.name; // name +',' + variation + ',' + sub-variations name + ...
+    for (const auto& pair : openings_table) {
+        const uint64_t hash = pair.first;
+        const Variations& var = pair.second;
+        uint8_t candidate_size = var.candidate_size; // 3
+        const std::string* candidates = var.candidate_moves; 
+        std::string move_line = var.move_line; // "e2e5 b8c6"
+        int eval = var.eval; // 50
+        std::string name = var.name; // name +',' + variation + ',' + sub-variations name + ...
  
 
-//         //opening_maps << hash << " -";
-//         //opening_maps << candidate_size << " - ";
-//         std::string cand = "";
-//         for (uint8_t i = 0; i < candidate_size; ++i) {
-//             cand += candidates[i]+" ";
-//             //opening_maps << candidates[i] << " ";
-//         }
-//         //opening_maps << "- " << move_line << " -";
-//         //opening_maps << eval << " - ";
-//         //opening_maps << name << "\n";
+        //opening_maps << hash << " -";
+        //opening_maps << candidate_size << " - ";
+        std::string cand = "";
+        for (uint8_t i = 0; i < candidate_size; ++i) {
+            cand += candidates[i]+" ";
+            //opening_maps << candidates[i] << " ";
+        }
+        //opening_maps << "- " << move_line << " -";
+        //opening_maps << eval << " - ";
+        //opening_maps << name << "\n";
 
-//         std::string line = std::to_string(hash) +" - "+ std::to_string(candidate_size) +" - "+ cand +"- "+ move_line +"- "+ std::to_string(eval) +" - "+ name + "\n";
-//         //Myprintlog::log(line);
-//         opening_maps << line;
-//     }
-//     opening_maps.close();
-// }
+        std::string line = std::to_string(hash) +" - "+ std::to_string(candidate_size) +" - "+ cand +"- "+ move_line +"- "+ std::to_string(eval) +" - "+ name + "\n";
+        //Myprintlog::log(line);
+        opening_maps << line;
+    }
+    opening_maps.close();
+}
+
+
+
+
+
+void generateOpeningsFile(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table){ //openings.pgn
+    //reads pgn openings file, generates opening table in memory and saves it in a file with the format bellow:
+    // "zobristHash -  candidate_size (2) - candidate_moves (e2e4 e2e3) - move_line (1.d3 Nf6) - eval - name
+
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error pgn file for reading!\n";
+        return;
+    }
+
+    std::vector <std::string> stringvec;
+    
+    std::string pgngame = "";
+    //std::string openingname = "";
+    std::string line;
+
+    while (std::getline(file,line)){// line = "1.e4 e5 2.Nf3"
+
+        if(!line.empty() && line != "\n" && line != "\r"){
+            stringvec.push_back(line);
+        }
+    }
+
+    Game game(STANDARD_POSITION, 1);
+    std::string move_line = "";
+
+    for(int i=0;i<stringvec.size(); i++) {
+        //std::string wholeline = stringvec[i]; 
+
+        if( stringvec[i][0] == '{' || stringvec[i][0] == '[' || stringvec[i][0] == '('){
+            if( stringvec[i] == "[Opening \"King's pawn Opening\"]\r" ){
+                Myprintlog::log(stringvec[i]);
+            }
+            game = Game(STANDARD_POSITION, 1); // reset everything and read a new game
+            pgngame = "";
+            move_line = "";
+            continue;
+        }else if(stringvec[i].empty() || stringvec[i] == "\n" || stringvec[i] == "\r"){
+            continue;
+        }
+
+
+        for(int j=i ; j<stringvec.size(); j++){
+            
+            if( stringvec[j] == "[Opening \"King's pawn Opening\"]\r" ){
+                Myprintlog::log(stringvec[i]);
+            }
+
+            if(stringvec[j].empty() || stringvec[j] == "\n" || stringvec[j] == "\r"){
+                continue;
+            }
+
+            if(stringvec[j][0] == '{' || stringvec[j][0] == '[' || stringvec[j][0] == '('){
+                i = j - 1;
+                break;
+            }
+            if(!stringvec[j].empty() && (stringvec[j].back() == '\n' || stringvec[j].back() == '\r')){
+                stringvec[j].pop_back();
+            }
+            pgngame += stringvec[j] + " ";
+        }
+        if(pgngame == ""){
+            continue;
+        }
+
+        std::stringstream ss(pgngame);
+        std::string pgn_move;
+
+
+        int count = 0;
+        while ( ss >> pgn_move && count <40) {
+            if(pgn_move[pgn_move.length()-1] == '.'){
+                std::string first = pgn_move;
+                ss >> pgn_move;
+                pgn_move = first + pgn_move;
+            }else if(pgn_move[0] == '{' || pgn_move[pgn_move.length()-1] == '}'){
+                continue;
+            }else if(pgn_move[0] == '[' || pgn_move[pgn_move.length()-1] == ']'){
+                continue;
+            }else if(pgn_move[0] == '(' || pgn_move[pgn_move.length()-1] == ')'){
+                continue;
+            }else if(pgn_move.length()<2){
+                std::string first = pgn_move;
+                ss >> pgn_move;
+                pgn_move = first + pgn_move;
+            }
+            game_data gd = game.get_gd();
+            Myprintlog::log(pgn_move);
+            std::string move = PGN_to_UCI(gd,pgn_move);
+            Myprintlog::log(move);
+            uint64_t zobrist_hash = get_board_hash(gd);
+            auto pair = openings_table.find(zobrist_hash);
+
+            game.move(move); // make the move
+
+            if (pair != openings_table.end()){
+            // search in openings table if zobrist exist if move is not included in candidate moves add moves
+
+                if(pair->second.candidate_size < MAX_CANDIDATE){
+                    bool found = false;
+                    for(uint8_t i=0; i<pair->second.candidate_size; i++ ){
+                        if(pair->second.candidate_moves[i] == move){
+                            found = true;
+                            break;
+                        };
+                    }
+                    if(!found){
+                        pair->second.candidate_moves[pair->second.candidate_size] = move;
+                        pair->second.move_line = move_line; 
+                        pair->second.candidate_size++;
+                    }
+                }
+            }else{
+                
+                Variations var(move,move_line);
+
+                openings_table[zobrist_hash] = var;
+            }
+
+            move_line += pgn_move + " ";
+            count++;
+        }
+
+        pgngame = "";
+    }
+    
+    file.close();
+
+    // now read the opening tables in the memory and save it in a file called opening_maps
+
+    std::ofstream opening_maps("openingmaps2.txt");
+    if (!opening_maps.is_open()) {
+        std::cerr << "Error openingmaps file for reading!\n";
+        return;
+    }
+
+    for (const auto& pair : openings_table) {
+        const uint64_t hash = pair.first;
+        const Variations& var = pair.second;
+        uint8_t candidate_size = var.candidate_size; // 3
+        const std::string* candidates = var.candidate_moves; 
+        std::string move_line = var.move_line; // "e2e5 b8c6"
+        int eval = var.eval; // 50
+        std::string name = var.name; // name +',' + variation + ',' + sub-variations name + ...
+ 
+
+        std::string cand = "";
+        for (uint8_t i = 0; i < candidate_size; ++i) {
+            cand += candidates[i]+" ";
+        }
+
+        std::string line = std::to_string(hash) +" - "+ std::to_string(candidate_size) +" - "+ cand +"- "+ move_line +"- "+ std::to_string(eval) +" - "+ name + "\n";
+        //Myprintlog::log(line);
+        opening_maps << line;
+    }
+    opening_maps.close();
+}
 
 
 // std::string PGN_arranger(std::string filename){
@@ -285,7 +458,7 @@ void initOpeningsTableFromFile(std::string filename, std::unordered_map<uint64_t
     }
 
     std::string line;
-    while (std::getline(*file, line)) { // "zobristHash -  candidate_size - e2e4 e2e3 - 1.d3 Nf6 - eval - name
+    while (std::getline(*file, line)) { // "zobristHash -  candidate_size (2) - candidate_moves (e2e4 e2e3) - move_line (1.d3 Nf6) - eval - name
         std::stringstream ss(line);
         uint64_t zobristHash;
         Variations variation("");
@@ -366,7 +539,7 @@ struct PN{
 
 
 std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
-    const std::string numbers = "01234567";
+    const std::string numbers = "12345678";
     const std::string letters = "hgfedcba";
     const std::string capitals = "KQRBN";
 
@@ -374,9 +547,14 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
     PN pn;
 
     int i=0;
-    if(( std::isdigit(pgn_move[0]) && pgn_move[1] == '.')){ // white
+    if(std::isdigit(pgn_move[0])){ // white
         pn.color = "white";
-        i = 2;
+        for(int j=0;j<pgn_move.length();j++){
+            if(pgn_move[j] == '.'){
+               i = j+1;
+               break;
+            }
+        }
     }
     //else{ // black
     //}
@@ -394,11 +572,11 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
                 pn.trgid = std::string(1,pgn_move[i+1]) + std::string(1,pgn_move[i+2]);
             }else if(pgn_move[i+2] == 'X' || pgn_move[i+2] == 'x'){ //Rex
                 //pn.trgid = pgn_move[i+3] + pgn_move[i+4];
-                pn.letter= pgn_move[i+1];
+                pn.letter = pgn_move[i+1];
                 pn.trgid = std::string(1,pgn_move[i+3]) + std::string(1,pgn_move[i+4]);
             }
-        }else if(letters.find(pgn_move[i+1]) != std::string::npos ){ // R3
-            pn.number = pgn_move[i+1] - '1' - 1;
+        }else if(numbers.find(pgn_move[i+1]) != std::string::npos ){ // R3
+            pn.number = pgn_move[i+1] - '0' - 1;
             if(pgn_move[i+2] == 'X' || pgn_move[i+2] == 'x'){ // R3x
                 //pn.trgid = pgn_move[i+3] + pgn_move[i+4]; // R3xe4
                 pn.trgid = std::string(1,pgn_move[i+3]) + std::string(1,pgn_move[i+4]);
@@ -426,12 +604,12 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
         }else if(numbers.find(pgn_move[i+1]) != std::string::npos){//e4
             if(pgn_move[i+2] == 'X' || pgn_move[i+2] == 'x'){//e4x
                 if(pgn_move.length()>5 && pgn_move[i+5] == '='){//e7xd8=
-                    pn.number = pgn_move[i+1] - '1' -1;
+                    //pn.number = pgn_move[i+1] - '0' -1;
                     //pn.trgid = pgn_move[i+3] + pgn_move[i+4];
                     pn.trgid = std::string(1,pgn_move[i+3]) + std::string(1,pgn_move[i+4]);
                     pn.promotion = std::tolower(pgn_move[i+6]);
                 }else{
-                    pn.number = pgn_move[i+1] - '1' -1;
+                    //pn.letter = pgn_move[i+1] - 'a' -1;
                     //pn.trgid = pgn_move[i+3] + pgn_move[i+4];
                     pn.trgid = std::string(1,pgn_move[i+3]) + std::string(1,pgn_move[i+4]);
                 }
@@ -449,9 +627,9 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
         pn.piece_name = "K";
         
         if(pgn_move[i+3] == '-' && pgn_move[i+4] == 'O'){//O-O-
-            pn.trgid = (pgn_move[1] == '.'? "c1" : "c8");
+            pn.trgid = (pn.color == "white" ? "c1" : "c8");
         }else if(pgn_move[i+2] == 'O'){// O-O
-            pn.trgid = (pgn_move[1] == '.'? "g1" : "g8");
+            pn.trgid = (pn.color == "white" ? "g1" : "g8");
         }
     }
     
@@ -492,7 +670,7 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
     if(pn.letter == "" && pn.number == INVALID){
         pn.srcid = notations[get_first_square(bitmap)];
 
-    }else if (pn.number != INVALID){ // row
+    }else if (pn.number != INVALID){ // number row
         while(bitmap){
             int s = get_first_square(bitmap);
             if((int)s/8 == pn.number){
@@ -501,7 +679,7 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
             }
             DEL_BIT(bitmap,s);
         }
-    }else{ // column
+    }else{ // letter column
         if(pn.piece_name == "P"){
             ArrayMoveList ml;
             ml.generate(gd);
@@ -534,7 +712,7 @@ std::string PGN_to_UCI(game_data& gd,std::string& pgn_move){
     }
 
     uci = pn.srcid + pn.trgid;
-    if(pn.promotion != 'I'){uci = uci + pn.promotion;}
+    if(pn.promotion != 'I'){uci = uci + "=" + pn.promotion;}
     if(pn.castle){uci = uci + '*';}
     return uci;
 };

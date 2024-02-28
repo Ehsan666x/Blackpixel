@@ -22,10 +22,11 @@ std::string Game::best_move() {
     // Calculate and return the best move for the current game state
     return "e4";
 }
-void Game::move(const std::string& move){
+bool Game::move(const std::string& move){ // move format uci (* for castles in case of fischer random castling)
     // Update the game state by making the specified move
     // /std::string new_fen = calculate_new_fen(_fen,move);
     //_fen=new_fen;
+    bool correct_move = false;
     int src_file = 7  - (move[0] - 'a');
     int src_rank = (move[1] - '0') - 1;
 
@@ -42,21 +43,26 @@ void Game::move(const std::string& move){
     for( uint32_t m : ml){
         if( (GET_SOURCE_SQUARE(m) == sqr) && (GET_TARGET_SQUARE(m) == target)){
             if(move.length() > 4){
-                if(GET_PROMOTED_PIECE(m)){
-                    if(promotion_pieces.find(move[4])!=std::string::npos && GET_PROMOTED_PIECE(m) == promotion_pieces.find(move[4])){ // promotion
+                int pro = GET_PROMOTED_PIECE(m);
+                if(pro){
+                    if(promotion_pieces.find(move[5])!=std::string::npos && (pro > 6 ? pro - 6 : pro) == promotion_pieces.find(move[5])){ // promotion
                         make_move(_gd,m);
+                        correct_move = true;
                         break;
                     }
                 }else if(move[4] == '*' && IS_CASTLING(m)){ // * castle?
                     make_move(_gd,m);
+                    correct_move = true;
                     break;
                 } 
             }else if(!IS_CASTLING(m)){ 
                 make_move(_gd,m);
+                correct_move = true;
                 break;
             }
         }
     }
+    return correct_move;
 }
 
 MoveList Game::possible_moves(){
@@ -73,6 +79,45 @@ ArrayMoveList Game::generate_arraymoves(){
 std::string Game::get_fen(){
     return _fen;
 }
+std::string Game::get_current_fen(){
+    std::string fen = "";
+    for(int i=7 ; i>=0 ; i--){
+        for(int j=7; j>=0; j--){
+            int blank_count = 0;
+            //_gd.mailbox
+            if(_gd.mailbox[i*8 + j] == INVALID){
+                blank_count++;
+                for(int b =j-1; b>=0; b--){
+                    
+                    if(_gd.mailbox[i*8 + b] == INVALID){
+                        blank_count++;
+                        j=b;
+                    }else{
+                        break;
+                    }
+                }
+                fen += std::to_string(blank_count);
+                blank_count = 0;
+            }else{
+                fen += str_pieces[_gd.mailbox[i*8 + j]];
+            }
+            
+        }
+        if(i>0){
+            fen += "/";
+        }else{// i==0 rest of the fen  w KQkq - 0 1"
+
+            fen += _gd.side_to_move ? " b" : " w";
+            fen += " " + castles_array[_gd.castles];
+            fen += _gd.en_passant ?  " " + notations[_gd.en_passant] : " -";
+            fen += _gd.halfmove ? " " + std::to_string(_gd.halfmove) : " 0";
+            fen += _gd.fullmove ? " " + std::to_string(_gd.fullmove) : " 0";
+        }
+
+    }
+    return fen;
+}
+
 game_data Game::get_gd(){
     return _gd;
 }
@@ -82,7 +127,7 @@ game_data Game::get_gd(){
 game_data::game_data() {
     for (int i = 0; i < 64; i++) {
         mailbox[i] = INVALID ;
-        castling_rights[i] = 15;
+        castling_rights[i] = 15; // 1111
     }
 }
 

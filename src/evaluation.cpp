@@ -223,7 +223,7 @@ int alpha_beta(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , i
         int sqr = !gd.side_to_move? gd.wking_sqr : gd.bking_sqr;
         int side = gd.side_to_move ^ 1;
         if ( is_square_attacked( gd,sqr ,side) ){ //checkmate
-            return !gd.side_to_move ? -1000000 : 1000000;
+            return !gd.side_to_move ? -1000000 - depth: 1000000 + depth;
         }else{
             return 0;
         };
@@ -301,14 +301,14 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
         uint64_t bhash = get_board_hash(gd);
         auto pair = openings_table.find(bhash);
         if (pair != openings_table.end()){
-            std::random_device rd;
-            std::mt19937 gen(rd());
+
 
             // Define the range for the distribution (0 to 5 inclusive)
-            std::uniform_int_distribution<int> distribution(0, 5);
+            std::uniform_int_distribution<int> distribution(0, pair->second.candidate_size-1);
 
             // Generate a random integer between 0 and 5
             int randomNum = distribution(gen);
+            //Myprintlog::log(randomNum);
             std::string strmove = pair->second.candidate_moves[randomNum];
             if(strmove.length()>3){
 
@@ -330,19 +330,19 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
                         if(strmove.length() > 4){
                             if(ml.first_move_list[i][3]){
                                 if(promotion_pieces.find(strmove[4])!=std::string::npos && ml.first_move_list[i][3] == promotion_pieces.find(strmove[4])){ // promotion
-                                    for(int j=0;j<7;j++){
+                                    for(int j=0;j<8;j++){
                                         bl.best_move[j] = ml.first_move_list[i][j];
                                     }
                                     return 0;
                                 }
                             }else if(strmove[4] == '*' && ml.first_move_list[i][7]){ // * castle?
-                                for(int j=0;j<7;j++){
+                                for(int j=0;j<8;j++){
                                     bl.best_move[j] = ml.first_move_list[i][j];
                                 }
                                 return 0;
                             } 
-                        }else if(!ml.first_move_list[i][7]){ 
-                                for(int j=0;j<7;j++){
+                        }else{ 
+                                for(int j=0;j<8;j++){
                                     bl.best_move[j] = ml.first_move_list[i][j];
                                 }
                                 return 0;
@@ -356,19 +356,19 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
                         if(strmove.length() > 4){
                             if(ml.second_move_list[i][3]){
                                 if(promotion_pieces.find(strmove[4])!=std::string::npos && ml.second_move_list[i][3] == promotion_pieces.find(strmove[4])){ // promotion
-                                for(int j=0;j<7;j++){
+                                for(int j=0;j<8;j++){
                                     bl.best_move[j] = ml.second_move_list[i][j];
                                 }
                                     return 0;
                                 }
                             }else if(strmove[4] == '*' && ml.second_move_list[i][7]){ // * castle?
-                                for(int j=0;j<7;j++){
+                                for(int j=0;j<8;j++){
                                     bl.best_move[j] = ml.second_move_list[i][j];
                                 }
                                 return 0;
                             } 
-                        }else if(!ml.second_move_list[i][7]){ 
-                            for(int j=0;j<7;j++){
+                        }else{ 
+                            for(int j=0;j<8;j++){
                                 bl.best_move[j] = ml.second_move_list[i][j];
                             }
                             return 0;
@@ -386,7 +386,7 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
         int sqr = !gd.side_to_move? gd.wking_sqr : gd.bking_sqr;
         int side = gd.side_to_move ^ 1;
         if ( is_square_attacked( gd,sqr ,side) ){ //checkmate
-            return !gd.side_to_move ? -1000000 : 1000000;
+            return !gd.side_to_move ? -1000000 - depth: 1000000 + depth;
         }else{
             return 0;
         };
@@ -473,7 +473,7 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
         //bl._size ++;
         if(main){
             //bl.best_move = best_move;
-            for(int j=0;j<7;j++){
+            for(int j=0;j<8;j++){
                 bl.best_move[j] = best_move[j];
             }
         }
@@ -546,7 +546,7 @@ int search(int depth ,game_data& gd, Best_line& bl , int alpha, int beta , int (
 
         if(main){
             //bl.best_move = best_move;
-            for(int j=0;j<7;j++){
+            for(int j=0;j<8;j++){
                 bl.best_move[j] = best_move[j];
             }
         }
@@ -568,7 +568,7 @@ int quiescence(int depth,game_data& gd, Best_line& bl , int alpha, int beta , in
             int sqr = !gd.side_to_move? gd.wking_sqr : gd.bking_sqr;
             int side = gd.side_to_move ^ 1;
             if ( is_square_attacked( gd,sqr ,side) ){ //checkmate
-                return !gd.side_to_move ? -1000000 : 1000000;
+                return !gd.side_to_move ? -1000000 - depth: 1000000 + depth;
             }else{
                 return 0;
             };

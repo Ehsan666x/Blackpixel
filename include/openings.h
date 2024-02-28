@@ -6,6 +6,7 @@
 #include <random>
 #include <fstream>
 #include <vector>
+#include "globals.h"
 #include "game.h"
 #include "evaluation.h"
 
@@ -22,7 +23,7 @@ inline std::unordered_map<uint64_t, Entry> zobrist_positions;
 inline uint64_t zobristTable[12][64];
 
 
-inline constexpr uint8_t MAX_CANDIDATE = 15;
+inline constexpr uint8_t MAX_CANDIDATE = 20;
 
 struct Variations{
     uint8_t candidate_size = 1; // 3 
@@ -39,8 +40,9 @@ struct Variations{
 inline std::unordered_map <uint64_t, Variations> openings_table; // zobrist hash , Variations
 
 
-//void generateOpeningsFile(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table);
+void generateOpeningsFile(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table);
 void initOpeningsTableFromFile(std::string filename, std::unordered_map<uint64_t, Variations>& openings_table);
+void create_zobrist_values(std::string filename);
 
 std::string PGN_to_UCI(game_data& gd,std::string& pgn_move);
 

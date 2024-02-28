@@ -1833,6 +1833,7 @@ void make_move(game_data& gd , uint32_t move){ // move list
         for(int j=(piece<6? 6: 0); j<(piece<6 ? 12 : 6); j++){
             if(gd.bitboards[j] & (1ULL << en_passant_target)){
                 DEL_BIT(gd.bitboards[j],en_passant_target); // delete enemy piece
+                gd.mailbox[en_passant_target] = INVALID;
                 j>5 ? gd.piece_numbers[j-6]-- : gd.piece_numbers[j]--;
                 break;
             }
